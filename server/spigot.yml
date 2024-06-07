@@ -21,36 +21,9 @@ advancements:
   disable-saving: false
   disabled:
   - minecraft:story/disabled
-settings:
-  player-shuffle: 0
-  timeout-time: 60
-  restart-on-crash: true
-  restart-script: ./start.sh
-  save-user-cache-on-stop-only: false
-  sample-count: 12
-  bungeecord: false
-  user-cache-size: 1000
-  moved-wrongly-threshold: 0.0625
-  moved-too-quickly-multiplier: 10.0
-  netty-threads: 4
-  attribute:
-    maxHealth:
-      max: 2048.0
-    movementSpeed:
-      max: 2048.0
-    attackDamage:
-      max: 2048.0
-  log-villager-deaths: true
-  log-named-deaths: true
-  debug: false
 world-settings:
   default:
-    seed-trailruins: 83469867
-    seed-trialchambers: 94251327
     below-zero-generation-in-existing-chunks: true
-    view-distance: default
-    simulation-distance: default
-    thunder-chance: 100000
     merge-radius:
       item: 2.5
       exp: 3.0
@@ -65,7 +38,6 @@ world-settings:
     end-portal-sound-radius: 0
     hanging-tick-frequency: 100
     growth:
-      pitcherplant-modifier: 100
       cactus-modifier: 100
       cane-modifier: 100
       melon-modifier: 100
@@ -87,6 +59,7 @@ world-settings:
       weepingvines-modifier: 100
       cavevines-modifier: 100
       glowberry-modifier: 100
+      pitcherplant-modifier: 100
     entity-activation-range:
       animals: 32
       monsters: 32
@@ -126,6 +99,9 @@ world-settings:
     hopper-amount: 1
     hopper-can-load-chunks: false
     dragon-death-sound-radius: 0
+    view-distance: default
+    simulation-distance: default
+    thunder-chance: 100000
     seed-village: 10387312
     seed-desert: 14357617
     seed-igloo: 14357618
@@ -142,6 +118,8 @@ world-settings:
     seed-fossil: 14357921
     seed-portal: 34222645
     seed-ancientcity: 20083232
+    seed-trailruins: 83469867
+    seed-trialchambers: 94251327
     seed-buriedtreasure: 10387320
     seed-mineshaft: default
     seed-stronghold: default
@@ -158,8 +136,28 @@ world-settings:
       tile: 50
       entity: 50
     verbose: false
-  worldeditregentempworld:
-    verbose: false
+settings:
+  timeout-time: 60
+  restart-on-crash: true
+  restart-script: ./start.sh
+  save-user-cache-on-stop-only: false
+  sample-count: 12
+  bungeecord: false
+  player-shuffle: 0
+  user-cache-size: 1000
+  moved-wrongly-threshold: 0.0625
+  moved-too-quickly-multiplier: 10.0
+  netty-threads: 4
+  attribute:
+    maxHealth:
+      max: 2048.0
+    movementSpeed:
+      max: 2048.0
+    attackDamage:
+      max: 2048.0
+  log-villager-deaths: true
+  log-named-deaths: true
+  debug: false
 commands:
   spam-exclusions:
   - /skill

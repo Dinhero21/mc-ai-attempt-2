@@ -23,4 +23,4 @@ java \
   -XX:SurvivorRatio=32 \
   -Dusing.aikars.flags=https://mcflags.emc.gs \
   -Daikars.new.flags=true \
-  -jar paper-1.20.6-137.jar nogui
+  -jar paper-1.20.4-497.jar nogui

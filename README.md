@@ -8,7 +8,7 @@ TODO:
 
 - [x] Paper Server
   - [x] Custom Datapack
-- [ ] Mineflayer
+- [x] Mineflayer
   - [ ] Pathfinding
   - [ ] Tasks
    - [ ] Heuristic (Smart)

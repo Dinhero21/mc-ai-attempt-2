@@ -12,7 +12,7 @@
 # Discord: https://discord.gg/papermc
 # Website: https://papermc.io/
 
-_version: 31
+_version: 30
 anticheat:
   anti-xray:
     enabled: false
@@ -20,10 +20,12 @@ anticheat:
     hidden-blocks:
     - copper_ore
     - deepslate_copper_ore
+    - raw_copper_block
     - gold_ore
     - deepslate_gold_ore
     - iron_ore
     - deepslate_iron_ore
+    - raw_iron_block
     - coal_ore
     - deepslate_coal_ore
     - lapis_ore
@@ -131,6 +133,7 @@ entities:
       wither: true
       wither-skeleton: true
     spiders-immune-to-poison-effect: true
+    undead-immune-to-certain-effects: true
   sniffer:
     boosted-hatch-time: default
     hatch-time: default
