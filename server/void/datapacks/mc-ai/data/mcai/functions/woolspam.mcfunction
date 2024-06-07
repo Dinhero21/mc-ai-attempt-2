@@ -1,0 +1,16 @@
+summon item 0 1 0 {Item: {id: "white_wool"}}
+summon item 0 1 0 {Item: {id: "light_gray_wool"}}
+summon item 0 1 0 {Item: {id: "gray_wool"}}
+summon item 0 1 0 {Item: {id: "black_wool"}}
+summon item 0 1 0 {Item: {id: "brown_wool"}}
+summon item 0 1 0 {Item: {id: "red_wool"}}
+summon item 0 1 0 {Item: {id: "orange_wool"}}
+summon item 0 1 0 {Item: {id: "yellow_wool"}}
+summon item 0 1 0 {Item: {id: "lime_wool"}}
+summon item 0 1 0 {Item: {id: "green_wool"}}
+summon item 0 1 0 {Item: {id: "cyan_wool"}}
+summon item 0 1 0 {Item: {id: "light_blue_wool"}}
+summon item 0 1 0 {Item: {id: "blue_wool"}}
+summon item 0 1 0 {Item: {id: "purple_wool"}}
+summon item 0 1 0 {Item: {id: "magenta_wool"}}
+summon item 0 1 0 {Item: {id: "pink_wool"}}
