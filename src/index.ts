@@ -1,5 +1,4 @@
-import { setTimeout as sleep } from 'timers/promises';
-
+import { DEBUG_VISUALS } from './settings.js';
 import bot from './singleton/bot.js';
 import ObtainItemTask from './task/obtain-item/index.js';
 
@@ -51,50 +50,73 @@ bot.on('chat', async (username, message) => {
   // );
   // console.log('--- cobblestone pickaxe cost:', obtainCobblestonePickaxe.getCost());
 
-  const obtainRawIron = new ObtainItemTask(
-    bot.registry.itemsByName.raw_iron.id,
+  // const obtainRawIron = new ObtainItemTask(
+  //   bot.registry.itemsByName.raw_iron.id,
+  //   1,
+  //   []
+  // );
+  // console.log('--- raw iron cost:', obtainRawIron.getCost());
+
+  // const obtainIronIngot = new ObtainItemTask(
+  //   bot.registry.itemsByName.iron_ingot.id,
+  //   1,
+  //   []
+  // );
+  // console.log('--- iron ingot cost:', obtainIronIngot.getCost());
+
+  // const obtainIronPickaxe = new ObtainItemTask(
+  //   bot.registry.itemsByName.iron_pickaxe.id,
+  //   1,
+  //   []
+  // );
+  // console.log('--- iron pickaxe cost:', obtainIronPickaxe.getCost());
+
+  const obtainDiamond = new ObtainItemTask(
+    bot.registry.itemsByName.diamond.id,
     1,
     []
   );
-  // console.log('--- raw iron cost:', obtainRawIron.getCost());
+  console.log('--- diamond cost:', obtainDiamond.getCost());
 
-  await bot.harts.run(obtainRawIron);
+  await bot.harts.run(obtainDiamond);
 
   bot.chat('Done!');
 });
 
 // ? Where should I put this
 
-bot.on('path_reset', () => {
-  bot.chat('/kill @e[tag=path]');
-});
+if (DEBUG_VISUALS) {
+  bot.on('path_reset', () => {
+    bot.chat('/kill @e[tag=path]');
+  });
 
-bot.on('path_stop', () => {
-  bot.chat('/kill @e[tag=path]');
-});
+  bot.on('path_stop', () => {
+    bot.chat('/kill @e[tag=path]');
+  });
 
-bot.on('goal_reached', () => {
-  bot.chat('/kill @e[tag=path]');
-});
+  bot.on('goal_reached', () => {
+    bot.chat('/kill @e[tag=path]');
+  });
 
-bot.on('path_update', (path) => {
-  bot.chat('/kill @e[tag=path]');
+  bot.on('path_update', (path) => {
+    bot.chat('/kill @e[tag=path]');
 
-  for (const move of path.path) {
-    bot.chat(
-      `/summon block_display ${move.x} ${move.y} ${
-        move.z
-      } {Tags:["path"],brightness:{sky:15,block:15},transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[-0.125f,-0.125f,-0.125f],scale:[0.25f,0.25f,0.25f]},block_state:{Name:"minecraft:${
-        move.parkour ? 'blue' : 'red'
-      }_wool"}}`
-    );
-  }
+    for (const move of path.path) {
+      bot.chat(
+        `/summon block_display ${move.x} ${move.y} ${
+          move.z
+        } {Tags:["path"],brightness:{sky:15,block:15},transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[-0.125f,-0.125f,-0.125f],scale:[0.25f,0.25f,0.25f]},block_state:{Name:"minecraft:${
+          move.parkour ? 'blue' : 'red'
+        }_wool"}}`
+      );
+    }
 
-  const goal = bot.pathfinder.goal;
+    const goal = bot.pathfinder.goal;
 
-  if (goal !== null && 'x' in goal && 'y' in goal && 'z' in goal) {
-    bot.chat(
-      `/summon block_display ${goal.x} ${goal.y} ${goal.z} {Tags:["path"],brightness:{sky:15,block:15},transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[-0.125f,-0.125f,-0.125f],scale:[0.25f,0.25f,0.25f]},block_state:{Name:"minecraft:lime_wool"}}`
-    );
-  }
-});
+    if (goal !== null && 'x' in goal && 'y' in goal && 'z' in goal) {
+      bot.chat(
+        `/summon block_display ${goal.x} ${goal.y} ${goal.z} {Tags:["path"],brightness:{sky:15,block:15},transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[-0.125f,-0.125f,-0.125f],scale:[0.25f,0.25f,0.25f]},block_state:{Name:"minecraft:lime_wool"}}`
+      );
+    }
+  });
+}

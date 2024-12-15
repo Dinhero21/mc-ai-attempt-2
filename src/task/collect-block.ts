@@ -1,5 +1,4 @@
 import { Block } from 'prismarine-block';
-import { Item } from 'prismarine-item';
 
 import bot from '../singleton/bot.js';
 import { toolIds } from '../tools.js';
@@ -22,24 +21,8 @@ export default class CollectBlockTask extends Task {
       return [digTask];
     }
 
-    let bestItem: Item | undefined;
-    let bestDigTime = Infinity;
-
     for (const item of bot.inventory.items()) {
       if (!this.block.canHarvest(item.type)) continue;
-
-      const digTime = this.block.digTime(item.type, false, false, false);
-
-      if (digTime < bestDigTime) {
-        bestItem = item;
-        bestDigTime = digTime;
-      }
-    }
-
-    if (bestItem !== undefined) {
-      // TODO: Make this a task
-      // (run at "inference" instead of "speculative")
-      bot.equip(bestItem, 'hand');
 
       return [digTask];
     }

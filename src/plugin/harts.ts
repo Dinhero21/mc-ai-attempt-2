@@ -1,5 +1,6 @@
 import { Bot, BotOptions } from 'mineflayer';
 
+import { TASK_SLEEP_DELAY_MS } from '../settings.js';
 import Task from '../task/index.js';
 
 interface Harts {
@@ -20,7 +21,9 @@ export function harts(bot: Bot, options: BotOptions) {
       harts.stack.push(task);
 
       while (true) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise((resolve) =>
+          setTimeout(resolve, TASK_SLEEP_DELAY_MS)
+        );
 
         // console.clear();
 

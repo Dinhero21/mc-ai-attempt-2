@@ -1,6 +1,11 @@
 import { Recipe } from 'prismarine-recipe';
 
 import { GoalNear } from '../plugin/pathfinder.js';
+import {
+  CRAFT_RECIPE_BASE_COST,
+  CRAFT_RECIPE_CRAFTING_TABLE_DISTANCE,
+  CRAFT_RECIPE_OBTAIN_INGREDIENT_ORDER,
+} from '../settings.js';
 import bot from '../singleton/bot.js';
 import Task from './index.js';
 import ObtainItemTask from './obtain-item/index.js';
@@ -36,7 +41,54 @@ export default class CraftRecipeTask extends Task {
 
   public async run() {
     const tasks = this.getTasks();
-    const task = tasks[0];
+
+    let task: Task | undefined;
+
+    switch (CRAFT_RECIPE_OBTAIN_INGREDIENT_ORDER) {
+      case 'arbitrary:first':
+        task = tasks[0];
+        break;
+      case 'arbitrary:random':
+        task = tasks[Math.floor(Math.random() * tasks.length)];
+        break;
+      case 'cost:highest':
+        {
+          let bestTask: Task | undefined;
+          let bestCost: number = -Infinity;
+
+          for (const task of tasks) {
+            const cost = task.getCost();
+
+            if (cost > bestCost) {
+              bestCost = cost;
+              bestTask = task;
+            }
+          }
+
+          task = bestTask;
+        }
+
+        break;
+      case 'cost:lowest':
+        {
+          let bestTask: Task | undefined;
+          let bestCost: number = Infinity;
+
+          for (const task of tasks) {
+            const cost = task.getCost();
+
+            if (cost > bestCost) {
+              bestCost = cost;
+              bestTask = task;
+            }
+          }
+
+          task = bestTask;
+        }
+
+        break;
+    }
+
     if (task !== undefined) return [this, task];
 
     const craftingTable = bot.findBlock({
@@ -48,7 +100,7 @@ export default class CraftRecipeTask extends Task {
         craftingTable.position.x,
         craftingTable.position.y,
         craftingTable.position.z,
-        3
+        CRAFT_RECIPE_CRAFTING_TABLE_DISTANCE
       );
 
       await bot.pathfinder.goto(goal);
@@ -62,7 +114,10 @@ export default class CraftRecipeTask extends Task {
 
     const tasks = this.getTasks();
 
-    return tasks.map((task) => task.getCost()).reduce((a, b) => a + b, 0) + 1;
+    return (
+      tasks.map((task) => task.getCost()).reduce((a, b) => a + b, 0) +
+      CRAFT_RECIPE_BASE_COST
+    );
   }
 
   public toString() {

@@ -6,7 +6,7 @@ import bot from './singleton/bot.js';
 // item id -> block id -> expected value
 export const blockLootExpectedValueMap = new Map<number, Map<number, number>>();
 
-const dir = resolve('block-loot-table', bot.version);
+const dir = resolve('extracted', bot.version, 'loot_table');
 
 for (const file of await readdir(dir)) {
   if (!file.endsWith('.json')) {

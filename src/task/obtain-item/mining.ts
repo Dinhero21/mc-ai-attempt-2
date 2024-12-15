@@ -3,8 +3,6 @@ import bot from '../../singleton/bot.js';
 import CollectBlockTask from '../collect-block.js';
 import Task from '../index.js';
 
-// const cache = new Map<number, number>();
-
 /**
  * obtain an item by mining a block
  */
@@ -69,15 +67,7 @@ export class ObtainItemMiningTask extends Task {
   public getBaseCost() {
     if (this.recursive) return Infinity;
 
-    // const cached = cache.get(this.id);
-    // if (cached !== undefined) return cached;
-
     const cost = this._getBaseCost();
-    // cache.set(this.id, cost);
-
-    // console.log(
-    //   `BaseCost(Obtain_Mining(${bot.registry.items[this.id].name}))=${cost}`
-    // );
 
     return cost;
   }

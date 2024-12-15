@@ -1,8 +1,9 @@
 import bot from '../../singleton/bot.js';
 import Task from '../index.js';
-import ObtainItemCraftingTask from './craft-item.js';
+import ObtainItemCraftingTask from './crafting.js';
 import { ObtainItemMiningTask } from './mining.js';
 import { ObtainItemPickingTask } from './picking.js';
+import ObtainItemSmeltingTask from './smelting.js';
 
 const cache = new Map<number, number>();
 
@@ -22,11 +23,13 @@ export default class ObtainItemTask extends Task {
     | ObtainItemMiningTask
     | ObtainItemCraftingTask
     | ObtainItemPickingTask
+    | ObtainItemSmeltingTask
     | undefined {
     const tasks = [
       new ObtainItemPickingTask(this.id, this.stack),
       new ObtainItemCraftingTask(this.id, this.amount, this.stack),
       new ObtainItemMiningTask(this.id, this.amount, this.stack),
+      new ObtainItemSmeltingTask(this.id, this.amount, this.stack),
     ];
 
     let bestTask: (typeof tasks)[number] | undefined;

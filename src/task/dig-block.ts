@@ -1,6 +1,7 @@
 import { Block } from 'prismarine-block';
 
 import { GoalNear } from '../plugin/pathfinder.js';
+import { DIG_BLOCK_BASE_COST } from '../settings.js';
 import bot from '../singleton/bot.js';
 import Task from './index.js';
 
@@ -20,11 +21,14 @@ export class DigBlockTask extends Task {
 
     await bot.pathfinder.goto(goal);
 
+    const tool = bot.pathfinder.bestHarvestTool(block);
+    if (tool !== null) bot.equip(tool, 'hand');
+
     await bot.dig(block);
   }
 
   public getCost() {
-    return 1;
+    return DIG_BLOCK_BASE_COST;
   }
 
   public toString() {

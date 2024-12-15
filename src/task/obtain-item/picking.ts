@@ -1,6 +1,7 @@
 import { Entity } from 'prismarine-entity';
 
 import { GoalFollow } from '../../plugin/pathfinder.js';
+import { PICKING_ITEM_BASE_COST, PICKING_ITEM_RANGE } from '../../settings.js';
 import bot from '../../singleton/bot.js';
 import Task from '../index.js';
 
@@ -33,7 +34,7 @@ export class ObtainItemPickingTask extends Task {
       return;
     }
 
-    const goal = new GoalFollow(entity, 1);
+    const goal = new GoalFollow(entity, PICKING_ITEM_RANGE);
 
     await bot.pathfinder.goto(goal);
   }
@@ -44,7 +45,7 @@ export class ObtainItemPickingTask extends Task {
     const entity = this.getEntity();
     if (entity === undefined) return Infinity;
 
-    return 1;
+    return PICKING_ITEM_BASE_COST;
   }
 
   public toString() {
