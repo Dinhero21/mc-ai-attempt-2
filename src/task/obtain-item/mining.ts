@@ -1,4 +1,4 @@
-import { blockLootExpectedValueMap } from '../../loottable.js';
+import { blockLootExpectedValueMap } from '../../extracted/loottable.js';
 import { OBTAIN_ITEM_MINING_CACHE_BASE_COST } from '../../settings.js';
 import bot from '../../singleton/bot.js';
 import { findBlock } from '../../world.js';

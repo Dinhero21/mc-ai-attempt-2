@@ -1,4 +1,4 @@
-import { recipesByType } from '../../recipes.js';
+import { recipesByType } from '../../extracted/recipes.js';
 import { OBTAIN_ITEM_SMELTING_CACHE_BASE_COST } from '../../settings.js';
 import bot from '../../singleton/bot.js';
 import Task from '../index.js';
