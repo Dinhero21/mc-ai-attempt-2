@@ -1,5 +1,6 @@
 import { OBTAIN_ITEM_CRAFTING_CACHE_BASE_COST } from '../../settings.js';
 import bot from '../../singleton/bot.js';
+import { findBlock } from '../../world.js';
 import CraftRecipeTask from '../craft-recipe.js';
 import Task from '../index.js';
 import { BaseCostWrapper } from './index.js';
@@ -17,9 +18,9 @@ export default class ObtainItemCraftingTask extends Task {
   }
 
   public getTaskAndCost(): [CraftRecipeTask, number] | undefined {
-    const craftingTable = bot.findBlock({
-      matching: bot.registry.blocksByName.crafting_table.id,
-    });
+    const craftingTable = findBlock(
+      bot.registry.blocksByName.crafting_table.id
+    );
 
     const recipes = bot.recipesAll(this.id, null, craftingTable);
 

@@ -1,6 +1,7 @@
 import { blockLootExpectedValueMap } from '../../loottable.js';
 import { OBTAIN_ITEM_MINING_CACHE_BASE_COST } from '../../settings.js';
 import bot from '../../singleton/bot.js';
+import { findBlock } from '../../world.js';
 import CollectBlockTask from '../collect-block.js';
 import Task from '../index.js';
 import { BaseCostWrapper } from './index.js';
@@ -26,10 +27,7 @@ export class ObtainItemMiningTask extends Task {
     let bestCost = Infinity;
 
     for (const [blockId, expectedValue] of expectedValues) {
-      const block = bot.findBlock({
-        matching: blockId,
-      });
-
+      const block = findBlock(blockId);
       if (block === null) continue;
 
       const task = new CollectBlockTask(block, this.stack);

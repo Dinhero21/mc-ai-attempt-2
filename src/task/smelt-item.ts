@@ -8,6 +8,7 @@ import {
   SMELT_ITEM_INTERVAL_MS,
 } from '../settings.js';
 import bot from '../singleton/bot.js';
+import { findBlock } from '../world.js';
 import Task from './index.js';
 import ObtainItemTask from './obtain-item/index.js';
 
@@ -27,9 +28,7 @@ export default class SmeltItemTask extends Task {
   }
 
   protected getBlock(): Block | null {
-    return bot.findBlock({
-      matching: bot.registry.blocksByName.furnace.id,
-    });
+    return findBlock(bot.registry.blocksByName.furnace.id);
   }
 
   public async run() {

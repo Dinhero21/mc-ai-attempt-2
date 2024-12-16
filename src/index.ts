@@ -1,6 +1,7 @@
 import { ALLOW_SPRINTING, DEBUG_VISUALS } from './settings.js';
 import bot from './singleton/bot.js';
 import ObtainItemTask from './task/obtain-item/index.js';
+import { findBlock as findBlock } from './world.js';
 
 bot.pathfinder.movements.allowSprinting = ALLOW_SPRINTING;
 
@@ -9,13 +10,18 @@ bot.on('chat', async (username, message) => {
 
   if (message !== 'start') return;
 
-  // const block = bot.findBlock({
-  //   matching: bot.registry.blocksByName.stone.id,
-  // });
+  const block = findBlock(bot.registry.blocksByName.stone.id);
 
-  // if (block === null) return;
+  if (block === null) return;
 
   // const task = new CollectBlockTask(block, []);
+
+  // const obtainOakLog = new ObtainItemTask(
+  //   bot.registry.itemsByName.oak_log.id,
+  //   1,
+  //   []
+  // );
+  // console.log('--- oak log cost:', obtainOakLog.getCost());
 
   // const obtainOakPlanks = new ObtainItemTask(
   //   bot.registry.itemsByName.oak_planks.id,
@@ -59,12 +65,12 @@ bot.on('chat', async (username, message) => {
   // );
   // console.log('--- raw iron cost:', obtainRawIron.getCost());
 
-  // const obtainIronIngot = new ObtainItemTask(
-  //   bot.registry.itemsByName.iron_ingot.id,
-  //   1,
-  //   []
-  // );
-  // console.log('--- iron ingot cost:', obtainIronIngot.getCost());
+  const obtainIronIngot = new ObtainItemTask(
+    bot.registry.itemsByName.iron_ingot.id,
+    1,
+    []
+  );
+  console.log('--- iron ingot cost:', obtainIronIngot.getCost());
 
   // const obtainIronPickaxe = new ObtainItemTask(
   //   bot.registry.itemsByName.iron_pickaxe.id,
@@ -73,14 +79,20 @@ bot.on('chat', async (username, message) => {
   // );
   // console.log('--- iron pickaxe cost:', obtainIronPickaxe.getCost());
 
-  const obtainDiamond = new ObtainItemTask(
-    bot.registry.itemsByName.diamond.id,
-    1,
-    []
-  );
-  console.log('--- diamond cost:', obtainDiamond.getCost());
+  // const obtainDiamond = new ObtainItemTask(
+  //   bot.registry.itemsByName.diamond.id,
+  //   1,
+  //   []
+  // );
+  // console.log('--- diamond cost:', obtainDiamond.getCost());
 
-  await bot.harts.run(obtainDiamond);
+  console.time('calculating cost');
+  console.log('cost:', obtainIronIngot.getCost());
+  console.timeEnd('calculating cost');
+
+  console.time('executing task');
+  await bot.harts.run(obtainIronIngot);
+  console.timeEnd('executing task');
 
   bot.chat('Done!');
 });

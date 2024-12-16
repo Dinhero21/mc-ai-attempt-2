@@ -1,6 +1,6 @@
 // Increasing this might reduce CPU load (although not by much, since heuristic calculation is the bulk of the work)
 // Decreasing this might lead to faster execution, but, if it is lower than the server's ping, the bot could take decisions based on outdated information, which could lead to erroneous actions (such as taking the same action twice)
-export const TASK_SLEEP_DELAY_MS = 100;
+export const TASK_SLEEP_DELAY_MS = 10;
 
 export const SMELT_ITEM_INTERVAL_MS = 100;
 
@@ -46,3 +46,5 @@ export const OBTAIN_ITEM_SMELTING_CACHE_BASE_COST = false;
 
 // disabling this seems to alleviate the issue of getting stuck on corners
 export const ALLOW_SPRINTING = false;
+
+export const FIND_BLOCK_MAX_DISTANCE = 256;

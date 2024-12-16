@@ -104,6 +104,8 @@ export function BaseCostWrapper(shouldCache: boolean) {
 
       const value = original.call(this);
 
+      console.log(`${this}=${value}`);
+
       if (shouldCache) cache.set(this.id, value);
 
       return value;

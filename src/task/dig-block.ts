@@ -3,6 +3,7 @@ import { Block } from 'prismarine-block';
 import { GoalNear } from '../plugin/pathfinder.js';
 import { DIG_BLOCK_BASE_COST } from '../settings.js';
 import bot from '../singleton/bot.js';
+import { findBlock } from '../world.js';
 import Task from './index.js';
 
 /**
@@ -42,9 +43,7 @@ export class DigBlockTypeTask extends Task {
   }
 
   protected getTask(): DigBlockTask | undefined {
-    const block = bot.findBlock({
-      matching: this.id,
-    });
+    const block = findBlock(this.id);
 
     if (block === null) return;
 

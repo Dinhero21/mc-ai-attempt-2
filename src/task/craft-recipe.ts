@@ -7,6 +7,7 @@ import {
   CRAFT_RECIPE_OBTAIN_INGREDIENT_ORDER,
 } from '../settings.js';
 import bot from '../singleton/bot.js';
+import { findBlock } from '../world.js';
 import Task from './index.js';
 import ObtainItemTask from './obtain-item/index.js';
 
@@ -91,9 +92,9 @@ export default class CraftRecipeTask extends Task {
 
     if (task !== undefined) return [this, task];
 
-    const craftingTable = bot.findBlock({
-      matching: bot.registry.blocksByName.crafting_table.id,
-    });
+    const craftingTable = findBlock(
+      bot.registry.blocksByName.crafting_table.id
+    );
 
     if (craftingTable !== null) {
       const goal = new GoalNear(
