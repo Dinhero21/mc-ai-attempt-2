@@ -44,7 +44,9 @@ export const OBTAIN_ITEM_CRAFTING_CACHE_BASE_COST = false;
 export const OBTAIN_ITEM_PICKING_CACHE_BASE_COST = false;
 export const OBTAIN_ITEM_SMELTING_CACHE_BASE_COST = false;
 
-// disabling this seems to alleviate the issue of getting stuck on corners
-export const ALLOW_SPRINTING = false;
+export const ALLOW_SPRINTING = true;
 
 export const FIND_BLOCK_MAX_DISTANCE = 256;
+
+// the bot frequently gets stuck on corners
+export const DISABLE_DIAGONAL_MOVEMENT = true;

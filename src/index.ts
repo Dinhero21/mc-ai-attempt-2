@@ -1,9 +1,16 @@
-import { ALLOW_SPRINTING, DEBUG_VISUALS } from './settings.js';
+import {
+  ALLOW_SPRINTING,
+  DEBUG_VISUALS,
+  DISABLE_DIAGONAL_MOVEMENT,
+} from './settings.js';
 import bot from './singleton/bot.js';
 import ObtainItemTask from './task/obtain-item/index.js';
 import { findBlock as findBlock } from './world.js';
 
 bot.pathfinder.movements.allowSprinting = ALLOW_SPRINTING;
+
+if (DISABLE_DIAGONAL_MOVEMENT)
+  bot.pathfinder.movements.getMoveDiagonal = () => {};
 
 bot.on('chat', async (username, message) => {
   console.log(`${username}: ${message}`);
