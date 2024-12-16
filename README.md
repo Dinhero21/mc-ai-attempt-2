@@ -4,12 +4,28 @@
 
 AI for Block Game
 
-TODO:
+### TODO
 
-- [x] Paper Server
+- [x] Server
+
   - [x] Custom Datapack
-- [x] Mineflayer
-  - [ ] Pathfinding
-  - [ ] Tasks
-   - [ ] Heuristic (Smart)
-   - [ ] Caching
+
+- [x] Client
+
+  - [x] Pathfinding
+
+  - [x] Tasks
+
+    - [x] Heuristic (Smart)
+    - [x] Caching
+    - [x] Dig Block
+    - [x] Collect Block
+    - [x] Craft Recipe
+    - [x] Smelt Items
+
+  - [x] Obtain Item (High-Level)
+
+    - [x] Crafting
+    - [x] Mining
+    - [x] Picking
+    - [x] Smelting

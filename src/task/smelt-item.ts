@@ -5,7 +5,7 @@ import { GoalNear } from '../plugin/pathfinder.js';
 import {
   SMELT_ITEM_BASE_COST,
   SMELT_ITEM_FUEL_ITEM_NAME,
-  SMELT_ITEM_SLEEP_DELAY_MS,
+  SMELT_ITEM_INTERVAL_MS,
 } from '../settings.js';
 import bot from '../singleton/bot.js';
 import Task from './index.js';
@@ -51,7 +51,7 @@ export default class SmeltItemTask extends Task {
 
     const output = await (async () => {
       while (true) {
-        await sleep(SMELT_ITEM_SLEEP_DELAY_MS);
+        await sleep(SMELT_ITEM_INTERVAL_MS);
 
         if (furnace.outputItem() !== null) {
           await furnace.takeOutput().catch(console.warn);

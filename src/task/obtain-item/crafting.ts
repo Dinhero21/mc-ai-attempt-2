@@ -1,6 +1,8 @@
+import { OBTAIN_ITEM_CRAFTING_CACHE_BASE_COST } from '../../settings.js';
 import bot from '../../singleton/bot.js';
 import CraftRecipeTask from '../craft-recipe.js';
 import Task from '../index.js';
+import { BaseCostWrapper } from './index.js';
 
 /**
  * obtain an item by crafting it
@@ -52,19 +54,12 @@ export default class ObtainItemCraftingTask extends Task {
     return [taskAndCost[0]];
   }
 
-  protected _getBaseCost() {
+  @BaseCostWrapper(OBTAIN_ITEM_CRAFTING_CACHE_BASE_COST)
+  public getBaseCost() {
     const taskAndCost = this.getTaskAndCost();
     if (taskAndCost === undefined) return Infinity;
 
     return taskAndCost[1];
-  }
-
-  public getBaseCost() {
-    if (this.recursive) return Infinity;
-
-    const cost = this._getBaseCost();
-
-    return cost;
   }
 
   public getCost() {

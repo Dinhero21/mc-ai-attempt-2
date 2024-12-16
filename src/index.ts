@@ -1,6 +1,8 @@
-import { DEBUG_VISUALS } from './settings.js';
+import { ALLOW_SPRINTING, DEBUG_VISUALS } from './settings.js';
 import bot from './singleton/bot.js';
 import ObtainItemTask from './task/obtain-item/index.js';
+
+bot.pathfinder.movements.allowSprinting = ALLOW_SPRINTING;
 
 bot.on('chat', async (username, message) => {
   console.log(`${username}: ${message}`);

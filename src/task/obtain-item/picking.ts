@@ -1,7 +1,10 @@
 import { Entity } from 'prismarine-entity';
 
 import { GoalFollow } from '../../plugin/pathfinder.js';
-import { PICKING_ITEM_BASE_COST, PICKING_ITEM_RANGE } from '../../settings.js';
+import {
+  PICKING_ITEM_BASE_COST,
+  PICKING_ITEM_INTERVAL_MS,
+} from '../../settings.js';
 import bot from '../../singleton/bot.js';
 import Task from '../index.js';
 
@@ -34,9 +37,20 @@ export class ObtainItemPickingTask extends Task {
       return;
     }
 
-    const goal = new GoalFollow(entity, PICKING_ITEM_RANGE);
+    // I should probably use setGoal and then a custom Promise to wait for the item to be picked up
 
-    await bot.pathfinder.goto(goal);
+    const goal = new GoalFollow(entity, 0);
+
+    const interval = setInterval(() => {
+      // entity has been removed
+      if (!entity.isValid) {
+        if (bot.pathfinder.goal === goal) bot.pathfinder.stop();
+      }
+    }, PICKING_ITEM_INTERVAL_MS);
+
+    await bot.pathfinder.goto(goal).catch(() => {});
+
+    clearInterval(interval);
   }
 
   public getCost() {

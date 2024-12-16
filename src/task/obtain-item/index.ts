@@ -1,11 +1,10 @@
+import { OBTAIN_ITEM_CACHE_BASE_COST } from '../../settings.js';
 import bot from '../../singleton/bot.js';
 import Task from '../index.js';
 import ObtainItemCraftingTask from './crafting.js';
 import { ObtainItemMiningTask } from './mining.js';
 import { ObtainItemPickingTask } from './picking.js';
 import ObtainItemSmeltingTask from './smelting.js';
-
-const cache = new Map<number, number>();
 
 /**
  * obtain an item by any means necessary
@@ -59,27 +58,12 @@ export default class ObtainItemTask extends Task {
     return [this, task];
   }
 
-  protected _getBaseCost() {
+  @BaseCostWrapper(OBTAIN_ITEM_CACHE_BASE_COST)
+  public getBaseCost() {
     const task = this.getTask();
     if (task === undefined) return Infinity;
 
     return task.getCost();
-  }
-
-  public getBaseCost() {
-    if (this.recursive) return Infinity;
-
-    const cached = cache.get(this.id);
-    if (cached !== undefined) return cached;
-
-    const cost = this._getBaseCost();
-    cache.set(this.id, cost);
-
-    console.log(
-      `BaseCost(Obtain(${bot.registry.items[this.id].name}))=${cost}`
-    );
-
-    return cost;
   }
 
   public getCost() {
@@ -96,4 +80,33 @@ export default class ObtainItemTask extends Task {
 
     return `${this.constructor.name}(${item.name}×${this.amount})`;
   }
+}
+
+export function BaseCostWrapper(shouldCache: boolean) {
+  const cache = new Map<number, number>();
+
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
+    const original = descriptor.value;
+
+    // this can actually be other values
+    // ObtainItem*Task would be more accurate
+    descriptor.value = function (this: ObtainItemTask) {
+      if (this.recursive) return Infinity;
+
+      if (shouldCache) {
+        const cachedValue = cache.get(this.id);
+        if (cachedValue !== undefined) return cachedValue;
+      }
+
+      const value = original.call(this);
+
+      if (shouldCache) cache.set(this.id, value);
+
+      return value;
+    };
+  };
 }

@@ -1,7 +1,9 @@
 import { blockLootExpectedValueMap } from '../../loottable.js';
+import { OBTAIN_ITEM_MINING_CACHE_BASE_COST } from '../../settings.js';
 import bot from '../../singleton/bot.js';
 import CollectBlockTask from '../collect-block.js';
 import Task from '../index.js';
+import { BaseCostWrapper } from './index.js';
 
 /**
  * obtain an item by mining a block
@@ -57,19 +59,12 @@ export class ObtainItemMiningTask extends Task {
     return [taskAndCost[0]];
   }
 
-  protected _getBaseCost() {
+  @BaseCostWrapper(OBTAIN_ITEM_MINING_CACHE_BASE_COST)
+  protected getBaseCost() {
     const taskAndCost = this.getTaskAndCost();
     if (taskAndCost === undefined) return Infinity;
 
     return taskAndCost[1];
-  }
-
-  public getBaseCost() {
-    if (this.recursive) return Infinity;
-
-    const cost = this._getBaseCost();
-
-    return cost;
   }
 
   public getCost() {

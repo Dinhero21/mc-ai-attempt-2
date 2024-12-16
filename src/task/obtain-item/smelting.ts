@@ -1,7 +1,9 @@
 import { recipesByType } from '../../recipes.js';
+import { OBTAIN_ITEM_SMELTING_CACHE_BASE_COST } from '../../settings.js';
 import bot from '../../singleton/bot.js';
 import Task from '../index.js';
 import SmeltItemTask from '../smelt-item.js';
+import { BaseCostWrapper } from './index.js';
 
 const recipes = recipesByType.get('minecraft:smelting');
 
@@ -85,19 +87,12 @@ export default class ObtainItemSmeltingTask extends Task {
     return [taskAndCost[0]];
   }
 
-  protected _getBaseCost() {
+  @BaseCostWrapper(OBTAIN_ITEM_SMELTING_CACHE_BASE_COST)
+  public getBaseCost() {
     const taskAndCost = this.getTaskAndCost();
     if (taskAndCost === undefined) return Infinity;
 
     return taskAndCost[1];
-  }
-
-  public getBaseCost() {
-    if (this.recursive) return Infinity;
-
-    const cost = this._getBaseCost();
-
-    return cost;
   }
 
   public getCost() {
