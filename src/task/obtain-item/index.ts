@@ -87,7 +87,7 @@ export function BaseCostWrapper(shouldCache: boolean) {
 
   return function (
     target: any,
-    propertyKey: string,
+    propertyKey: string | symbol,
     descriptor: PropertyDescriptor
   ) {
     const original = descriptor.value;

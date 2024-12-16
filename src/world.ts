@@ -1,4 +1,3 @@
-import { FindBlockOptions } from 'mineflayer';
 import { Block } from 'prismarine-block';
 
 import { FIND_BLOCK_MAX_DISTANCE } from './settings.js';
