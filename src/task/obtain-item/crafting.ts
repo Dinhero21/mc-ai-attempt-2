@@ -1,74 +1,78 @@
-import { OBTAIN_ITEM_CRAFTING_CACHE_BASE_COST } from '../../settings.js';
+import { ReactiveValue } from '../../react.js';
+import { OBTAIN_ITEM_CRAFTING_USE_EXPECTED_VALUE } from '../../settings.js';
 import bot from '../../singleton/bot.js';
-import { findBlock } from '../../world.js';
+import { getNearestBlock } from '../../world.js';
 import CraftRecipeTask from '../craft-recipe.js';
-import Task from '../index.js';
-import { BaseCostWrapper } from './index.js';
+import { AvoidInfiniteRecursion, CacheReactiveValue } from '../index.js';
+import BaseObtainItemTask, { getLowestCostTaskAndCost } from './base.js';
 
 /**
  * obtain an item by crafting it
  */
-export default class ObtainItemCraftingTask extends Task {
-  constructor(
-    public readonly id: number,
-    public readonly amount: number,
-    stack: string[]
-  ) {
-    super(stack);
+export default class ObtainItemCraftingTask extends BaseObtainItemTask {
+  public static craftingTableBlock = getNearestBlock(
+    bot.registry.blocksByName.crafting_table.id
+  );
+
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor(id: number, amount: number, stack: string[]) {
+    super(id, amount, stack);
   }
 
-  public getTaskAndCost(): [CraftRecipeTask, number] | undefined {
-    const craftingTable = findBlock(
-      bot.registry.blocksByName.crafting_table.id
-    );
+  @CacheReactiveValue((task) => task.id)
+  public getTaskAndCost(): ReactiveValue<
+    [task: CraftRecipeTask, cost: number] | undefined
+  > {
+    return ObtainItemCraftingTask.craftingTableBlock
+      .derive((craftingTable) => {
+        const recipes = bot.recipesAll(this.id, null, craftingTable);
 
-    const recipes = bot.recipesAll(this.id, null, craftingTable);
+        const taskAndCostArray: ReactiveValue<
+          [task: CraftRecipeTask, cost: number]
+        >[] = recipes.map((recipe) => {
+          const task = new CraftRecipeTask(recipe, this.stack);
 
-    let bestTask: CraftRecipeTask | undefined;
-    let bestCost = Infinity;
+          const reactiveCost = task.getCost();
 
-    for (const recipe of recipes) {
-      const task = new CraftRecipeTask(recipe, this.stack);
-      const cost = task.getCost();
+          return reactiveCost.derive((cost) => {
+            if (OBTAIN_ITEM_CRAFTING_USE_EXPECTED_VALUE)
+              cost /= task.recipe.result.count;
 
-      if (cost < bestCost) {
-        bestTask = task;
-        bestCost = cost;
-      }
-    }
+            return [task, cost];
+          });
+        });
 
-    if (bestCost === Infinity) return;
-    if (bestTask === undefined) return;
+        const composed = ReactiveValue.compose(taskAndCostArray);
 
-    return [bestTask, bestCost];
+        return getLowestCostTaskAndCost(composed);
+      })
+      .flat();
+  }
+
+  @CacheReactiveValue((task) => task.id)
+  public getTask(): ReactiveValue<CraftRecipeTask | undefined> {
+    return this.getTaskAndCost().derive((taskAndCost) => taskAndCost?.[0]);
   }
 
   public async run() {
-    if (bot.inventory.count(this.id, null) >= this.amount) return;
+    const missing = this.getMissing();
+    if (missing.value === 0) return;
 
-    const taskAndCost = this.getTaskAndCost();
-    if (taskAndCost === undefined) {
+    const reactiveTask = this.getTask();
+    const task = reactiveTask.value;
+    if (task === undefined) {
       console.warn('undefined task');
       return;
     }
 
-    return [taskAndCost[0]];
+    return [task];
   }
 
-  @BaseCostWrapper(OBTAIN_ITEM_CRAFTING_CACHE_BASE_COST)
-  public getBaseCost() {
-    const taskAndCost = this.getTaskAndCost();
-    if (taskAndCost === undefined) return Infinity;
-
-    return taskAndCost[1];
-  }
-
-  public getCost() {
-    if (this.recursive) return Infinity;
-
-    return (
-      this.getBaseCost() *
-      Math.max(this.amount - bot.inventory.count(this.id, null), 0)
+  @AvoidInfiniteRecursion()
+  @CacheReactiveValue((task) => task.id)
+  public getBaseCost(): ReactiveValue<number> {
+    return this.getTaskAndCost().derive(
+      (taskAndCost) => taskAndCost?.[1] ?? Infinity
     );
   }
 

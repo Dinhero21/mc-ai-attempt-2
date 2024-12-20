@@ -1,10 +1,11 @@
 import { Block } from 'prismarine-block';
 
 import { GoalNear } from '../plugin/pathfinder.js';
+import { ReactiveValue } from '../react.js';
 import { DIG_BLOCK_BASE_COST } from '../settings.js';
 import bot from '../singleton/bot.js';
-import { findBlock } from '../world.js';
-import Task from './index.js';
+import { getNearestBlock } from '../world.js';
+import Task, { AvoidInfiniteRecursion, CacheReactiveValue } from './index.js';
 
 /**
  * break a block using the currently selected item
@@ -28,8 +29,9 @@ export class DigBlockTask extends Task {
     await bot.dig(block);
   }
 
+  protected cost = new ReactiveValue(DIG_BLOCK_BASE_COST);
   public getCost() {
-    return DIG_BLOCK_BASE_COST;
+    return this.cost;
   }
 
   public toString() {
@@ -42,17 +44,17 @@ export class DigBlockTypeTask extends Task {
     super(stack);
   }
 
-  protected getTask(): DigBlockTask | undefined {
-    const block = findBlock(this.id);
+  protected getTask(): ReactiveValue<DigBlockTask | undefined> {
+    return getNearestBlock(this.id).derive((block) => {
+      if (block === null) return;
 
-    if (block === null) return;
-
-    return new DigBlockTask(block, this.stack);
+      return new DigBlockTask(block, this.stack);
+    });
   }
 
   public async run() {
-    const task = this.getTask();
-
+    const reactiveTask = this.getTask();
+    const task = reactiveTask.value;
     if (task === undefined) {
       console.warn('undefined task');
       return;
@@ -61,14 +63,12 @@ export class DigBlockTypeTask extends Task {
     return [task];
   }
 
+  @AvoidInfiniteRecursion()
+  @CacheReactiveValue((task) => task.id)
   public getCost() {
-    if (this.recursive) return Infinity;
-
-    const task = this.getTask();
-
-    if (task === undefined) return Infinity;
-
-    return task.getCost();
+    return this.getTask()
+      .derive((task) => task?.getCost() ?? Infinity)
+      .flat();
   }
 
   public toString() {

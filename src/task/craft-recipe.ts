@@ -1,14 +1,16 @@
 import { Recipe } from 'prismarine-recipe';
 
+import { getReactiveItemCountForId } from '../inventory.js';
 import { GoalNear } from '../plugin/pathfinder.js';
+import { ReactiveValue } from '../react.js';
 import {
   CRAFT_RECIPE_BASE_COST,
   CRAFT_RECIPE_CRAFTING_TABLE_DISTANCE,
   CRAFT_RECIPE_OBTAIN_INGREDIENT_ORDER,
 } from '../settings.js';
 import bot from '../singleton/bot.js';
-import { findBlock } from '../world.js';
-import Task from './index.js';
+import { getNearestBlock } from '../world.js';
+import Task, { AvoidInfiniteRecursion, CacheReactiveValue } from './index.js';
 import ObtainItemTask from './obtain-item/index.js';
 
 /**
@@ -17,11 +19,11 @@ import ObtainItemTask from './obtain-item/index.js';
  * @warning does not attempt to create a crafting table
  */
 export default class CraftRecipeTask extends Task {
+  protected readonly ingredientCount: Map<number, number>;
+
   constructor(public readonly recipe: Recipe, stack: string[]) {
     super(stack);
-  }
 
-  protected getTasks(): ObtainItemTask[] {
     const ingredientCount = new Map<number, number>();
 
     for (const ingredient of this.recipe.ingredients ??
@@ -35,13 +37,29 @@ export default class CraftRecipeTask extends Task {
       );
     }
 
-    return Array.from(ingredientCount.entries())
-      .filter(([id, count]) => bot.inventory.count(id, null) < count)
-      .map(([id, count]) => new ObtainItemTask(id, count, this.stack));
+    this.ingredientCount = ingredientCount;
   }
 
-  public async run() {
-    const tasks = this.getTasks();
+  @CacheReactiveValue((task) => task.recipe)
+  protected getTasks(): ReactiveValue<ObtainItemTask[]> {
+    const tasks = Array.from(this.ingredientCount.entries()).map(
+      ([id, count]) => new ObtainItemTask(id, count, this.stack)
+    );
+
+    const reactiveTaskArray = tasks.map((task) =>
+      getReactiveItemCountForId(task.id).derive((count) =>
+        count < task.amount ? task : undefined
+      )
+    );
+
+    return ReactiveValue.compose(reactiveTaskArray).derive((array) =>
+      array.filter((value) => value !== undefined)
+    );
+  }
+
+  public async run(): Promise<void | Task[]> {
+    const reactiveTasks = this.getTasks();
+    const tasks = reactiveTasks.value;
 
     let task: Task | undefined;
 
@@ -58,7 +76,8 @@ export default class CraftRecipeTask extends Task {
           let bestCost: number = -Infinity;
 
           for (const task of tasks) {
-            const cost = task.getCost();
+            const reactiveCost = task.getCost();
+            const cost = reactiveCost.value;
 
             if (cost > bestCost) {
               bestCost = cost;
@@ -76,7 +95,8 @@ export default class CraftRecipeTask extends Task {
           let bestCost: number = Infinity;
 
           for (const task of tasks) {
-            const cost = task.getCost();
+            const reactiveCost = task.getCost();
+            const cost = reactiveCost.value;
 
             if (cost > bestCost) {
               bestCost = cost;
@@ -92,9 +112,10 @@ export default class CraftRecipeTask extends Task {
 
     if (task !== undefined) return [this, task];
 
-    const craftingTable = findBlock(
+    const reactiveCraftingTable = getNearestBlock(
       bot.registry.blocksByName.crafting_table.id
     );
+    const craftingTable = reactiveCraftingTable.value;
 
     if (craftingTable !== null) {
       const goal = new GoalNear(
@@ -110,21 +131,30 @@ export default class CraftRecipeTask extends Task {
     await bot.craft(this.recipe, 1, craftingTable ?? undefined);
   }
 
+  @AvoidInfiniteRecursion()
+  @CacheReactiveValue((task) => task.recipe)
   public getCost() {
-    if (this.recursive) return Infinity;
-
     const tasks = this.getTasks();
 
-    return (
-      tasks.map((task) => task.getCost()).reduce((a, b) => a + b, 0) +
-      CRAFT_RECIPE_BASE_COST
-    );
+    return tasks
+      .derive((tasks) => {
+        const costs = tasks.map((task) => task.getCost());
+
+        return ReactiveValue.compose(costs).derive((costs) =>
+          costs.reduce((a, b) => a + b, CRAFT_RECIPE_BASE_COST)
+        );
+      })
+      .flat();
   }
 
   public toString() {
     const result = this.recipe.result;
     const item = bot.registry.items[result.id];
 
-    return `${this.constructor.name}(${item.name}×${result.count})`;
+    return `${this.constructor.name}({ ${Array.from(
+      this.ingredientCount.entries()
+    )
+      .map(([id, count]) => `${bot.registry.items[id]?.name}×${count}`)
+      .join(', ')} } -> ${item.name}×${result.count})`;
   }
 }

@@ -1,10 +1,12 @@
 import { Block } from 'prismarine-block';
+import { PCChunk } from 'prismarine-chunk';
 
+import { ReactiveMap, ReactiveValue } from './react.js';
 import { FIND_BLOCK_MAX_DISTANCE } from './settings.js';
 import bot from './singleton/bot.js';
 
 // id -> count
-export const blockCount = new Map<number, number>();
+export const blockCount = new ReactiveMap<number, number>();
 
 const loadedChunkColumns = new Set<string>();
 bot.on('chunkColumnLoad', (pos) => {
@@ -42,12 +44,13 @@ bot.on('blockUpdate', (oldBlock, newBlock) => {
   blockCount.set(newId, (blockCount.get(newId) ?? 0) + 1);
 });
 
-export function findBlock(id: number): Block | null {
-  const count = blockCount.get(id);
-  if (count === undefined || count === 0) return null;
+export function getNearestBlock(id: number): ReactiveValue<Block | null> {
+  return blockCount.getReactive(id).derive((count) => {
+    if (count === undefined || count === 0) return null;
 
-  return bot.findBlock({
-    matching: id,
-    maxDistance: FIND_BLOCK_MAX_DISTANCE,
+    return bot.findBlock({
+      matching: id,
+      maxDistance: FIND_BLOCK_MAX_DISTANCE,
+    });
   });
 }

@@ -28,7 +28,7 @@ export function harts(bot: Bot, options: BotOptions) {
         console.log('---');
 
         for (const [i, task] of harts.stack.entries()) {
-          console.log(`${i + 1}. ${task} ${task.getCost()}`);
+          console.log(`${i + 1}. ${task} ${task.getCost().value}`);
         }
 
         const task = harts.stack.pop();
@@ -37,38 +37,32 @@ export function harts(bot: Bot, options: BotOptions) {
           break;
         }
 
-        const taskAndCostBefore =
-          STACK_PRUNING_METHOD === 'cost-delta'
-            ? harts.stack.map((task) => [task, task.getCost()])
-            : undefined;
+        const costs = harts.stack.map((task) => task.getCost());
+
+        const oldCosts = costs.map((cost) => cost.value);
 
         const substitute = await task.run();
+
+        const newCosts = costs.map((cost) => cost.value);
 
         if (substitute !== undefined) {
           harts.stack.push(...substitute);
         }
 
-        if (
-          STACK_PRUNING_METHOD === 'full' &&
-          (substitute === undefined || substitute.length === 0)
-        ) {
-          harts.stack = [harts.stack[0]];
-        }
+        // if (
+        //   STACK_PRUNING_METHOD === 'full' &&
+        //   (substitute === undefined || substitute.length === 0)
+        // ) {
+        //   harts.stack = [harts.stack[0]];
+        // }
 
-        const taskAndCostAfter =
-          STACK_PRUNING_METHOD === 'cost-delta'
-            ? harts.stack.map((task) => [task, task.getCost()])
-            : undefined;
-
-        if (taskAndCostBefore !== undefined && taskAndCostAfter !== undefined) {
-          for (let i = 0; i < taskAndCostAfter.length; i++) {
-            if (taskAndCostBefore[i]?.[0] !== taskAndCostAfter[i][0]) continue;
-            if (taskAndCostBefore[i][1] === taskAndCostAfter[i][1]) continue;
+        if (STACK_PRUNING_METHOD === 'cost-delta')
+          for (let i = 0; i < costs.length; i++) {
+            if (oldCosts[i] === newCosts[i]) continue;
 
             harts.stack = harts.stack.slice(0, i);
             break;
           }
-        }
       }
     },
   };

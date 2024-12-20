@@ -1,9 +1,13 @@
 import { recipesByType } from '../../extracted/recipes.js';
-import { OBTAIN_ITEM_SMELTING_CACHE_BASE_COST } from '../../settings.js';
+import { ReactiveValue } from '../../react.js';
 import bot from '../../singleton/bot.js';
-import Task from '../index.js';
+import {
+  AvoidInfiniteRecursion,
+  CacheReactiveValue,
+  getLowestCostTask,
+} from '../index.js';
 import SmeltItemTask from '../smelt-item.js';
-import { BaseCostWrapper } from './index.js';
+import BaseObtainItemTask from './base.js';
 
 const recipes = recipesByType.get('minecraft:smelting');
 
@@ -34,74 +38,58 @@ for (const recipe of recipes as Set<any>) {
  *
  * @warning does not attempt to create a furnace
  */
-export default class ObtainItemSmeltingTask extends Task {
-  constructor(
-    public readonly id: number,
-    public readonly amount: number,
-    stack: string[]
-  ) {
-    super(stack);
+export default class ObtainItemSmeltingTask extends BaseObtainItemTask {
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor(id: number, amount: number, stack: string[]) {
+    super(id, amount, stack);
   }
 
-  public getTaskAndCost(): [SmeltItemTask, number] | undefined {
+  // here we don't have to use taskAndCost since cost is always the task's cost
+  // (since an item is always smelted from a single item)
+  public getTask(): ReactiveValue<SmeltItemTask | undefined> {
     const item = bot.registry.items[this.id];
     const name = item.name;
     const namespaced = `minecraft:${name}`;
 
     const recipes = recipesByResult.get(namespaced) ?? new Set();
 
-    let bestTask: SmeltItemTask | undefined;
-    let bestCost = Infinity;
+    const tasks: SmeltItemTask[] = Array.from(recipes)
+      .map((namespaced) => {
+        const name = namespaced.startsWith('minecraft:')
+          ? namespaced.slice('minecraft:'.length)
+          : namespaced;
+        const item = bot.registry.itemsByName[name];
+        if (item === undefined) return;
 
-    for (const namespaced of recipes) {
-      const name = namespaced.startsWith('minecraft:')
-        ? namespaced.slice('minecraft:'.length)
-        : namespaced;
-      const item = bot.registry.itemsByName[name];
-      if (item === undefined) continue;
+        const task = new SmeltItemTask(item.id, this.stack);
 
-      const task = new SmeltItemTask(item.id, this.stack);
-      const cost = task.getCost();
+        return task;
+      })
+      .filter((task) => task !== undefined);
 
-      if (cost < bestCost) {
-        bestTask = task;
-        bestCost = cost;
-      }
-    }
-
-    if (bestCost === Infinity) return;
-    if (bestTask === undefined) return;
-
-    return [bestTask, bestCost];
+    return getLowestCostTask(tasks);
   }
 
   public async run() {
-    if (bot.inventory.count(this.id, null) >= this.amount) return;
+    const missing = this.getMissing();
+    if (missing.value === 0) return;
 
-    const taskAndCost = this.getTaskAndCost();
-    if (taskAndCost === undefined) {
+    const reactiveTask = this.getTask();
+    const task = reactiveTask.value;
+    if (task === undefined) {
       console.warn('undefined task');
       return;
     }
 
-    return [taskAndCost[0]];
+    return [task];
   }
 
-  @BaseCostWrapper(OBTAIN_ITEM_SMELTING_CACHE_BASE_COST)
+  @AvoidInfiniteRecursion()
+  @CacheReactiveValue((target) => target.id)
   public getBaseCost() {
-    const taskAndCost = this.getTaskAndCost();
-    if (taskAndCost === undefined) return Infinity;
-
-    return taskAndCost[1];
-  }
-
-  public getCost() {
-    if (this.recursive) return Infinity;
-
-    return (
-      this.getBaseCost() *
-      Math.max(this.amount - bot.inventory.count(this.id, null), 0)
-    );
+    return this.getTask()
+      .derive((task) => task?.getCost() ?? Infinity)
+      .flat();
   }
 
   public toString() {

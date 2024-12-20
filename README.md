@@ -22,3 +22,5 @@ TODO:
     - [x] Mining
     - [x] Picking
     - [x] Smelting
+  - [x] Caching
+    - [x] Reactive

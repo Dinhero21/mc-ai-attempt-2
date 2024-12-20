@@ -1,13 +1,15 @@
 import { Entity } from 'prismarine-entity';
 
 import { GoalFollow } from '../../plugin/pathfinder.js';
+import { ReactiveSet, ReactiveValue } from '../../react.js';
 import {
   PICKING_ITEM_BASE_COST,
   PICKING_ITEM_INTERVAL_MS,
 } from '../../settings.js';
 import bot from '../../singleton/bot.js';
-import Task from '../index.js';
+import Task, { AvoidInfiniteRecursion, CacheReactiveValue } from '../index.js';
 
+// technically not an obtain item task, since it doesn't take amount as an input
 /**
  * obtain an item by picking it up from the ground
  */
@@ -16,22 +18,40 @@ export class ObtainItemPickingTask extends Task {
     super(stack);
   }
 
-  protected getEntity(): Entity | undefined {
-    return (
-      bot.nearestEntity((entity) => {
-        if (entity.name !== 'item') return false;
+  @CacheReactiveValue((task) => task.id)
+  protected getEntity(): ReactiveValue<Entity | undefined> {
+    const entities = new ReactiveSet<Entity>();
 
-        const item = entity.metadata[8];
-        if (item === undefined)
-          throw new Error(`could not parse item entity metadata`);
+    bot.on('itemDrop', (entity) => {
+      const item = entity.getDroppedItem();
+      if (item === null) return;
 
-        return item.present === true && item.itemId === this.id;
-      }) ?? undefined
-    );
+      if (item.type === this.id) entities.add(entity);
+    });
+
+    bot.on('entityGone', (entity) => {
+      entities.delete(entity);
+    });
+
+    return entities.derive((entities) => {
+      let bestDistanceSquared = Infinity;
+      let bestEntity: Entity | undefined;
+
+      for (const entity of entities) {
+        const distance = bot.entity.position.distanceSquared(entity.position);
+        if (distance < bestDistanceSquared) {
+          bestDistanceSquared = distance;
+          bestEntity = entity;
+        }
+      }
+
+      return bestEntity;
+    });
   }
 
   public async run() {
-    const entity = this.getEntity();
+    const reactiveEntity = this.getEntity();
+    const entity = reactiveEntity.value;
     if (entity === undefined) {
       console.warn('undefined entity');
       return;
@@ -53,13 +73,16 @@ export class ObtainItemPickingTask extends Task {
     clearInterval(interval);
   }
 
+  @AvoidInfiniteRecursion()
+  @CacheReactiveValue((task) => task.id)
   public getCost() {
-    if (this.recursive) return Infinity;
-
     const entity = this.getEntity();
-    if (entity === undefined) return Infinity;
 
-    return PICKING_ITEM_BASE_COST;
+    return entity.derive((entity) => {
+      if (entity === undefined) return Infinity;
+
+      return PICKING_ITEM_BASE_COST;
+    });
   }
 
   public toString() {

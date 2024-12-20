@@ -803,5 +803,17 @@
     },
     "done": true
   },
+  "minecraft:story/root": {
+    "criteria": {
+      "crafting_table": "2024-12-20 06:49:17 -0300"
+    },
+    "done": true
+  },
+  "minecraft:recipes/misc/iron_ingot_from_nuggets": {
+    "criteria": {
+      "has_iron_nugget": "2024-12-20 14:56:54 -0300"
+    },
+    "done": true
+  },
   "DataVersion": 3700
 }

@@ -1,76 +1,77 @@
 import { blockLootExpectedValueMap } from '../../extracted/loottable.js';
-import { OBTAIN_ITEM_MINING_CACHE_BASE_COST } from '../../settings.js';
+import { ReactiveValue } from '../../react.js';
 import bot from '../../singleton/bot.js';
-import { findBlock } from '../../world.js';
+import { getNearestBlock } from '../../world.js';
 import CollectBlockTask from '../collect-block.js';
-import Task from '../index.js';
-import { BaseCostWrapper } from './index.js';
+import Task, { AvoidInfiniteRecursion, CacheReactiveValue } from '../index.js';
+import BaseObtainItemTask, { getLowestCostTaskAndCost } from './base.js';
 
 /**
  * obtain an item by mining a block
  */
-export class ObtainItemMiningTask extends Task {
-  constructor(
-    public readonly id: number,
-    public readonly amount: number,
-    stack: string[]
-  ) {
-    super(stack);
+export class ObtainItemMiningTask extends BaseObtainItemTask {
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor(id: number, amount: number, stack: string[]) {
+    super(id, amount, stack);
   }
 
-  protected getTaskAndCost(): [CollectBlockTask, number] | undefined {
+  @CacheReactiveValue((task) => task.id)
+  protected getTaskAndCost(): ReactiveValue<
+    [task: CollectBlockTask, cost: number] | undefined
+  > {
     const expectedValues = blockLootExpectedValueMap.get(this.id);
+    if (expectedValues === undefined) return new ReactiveValue<any>(undefined);
 
-    if (expectedValues === undefined) return;
+    const taskAndCostArray: ReactiveValue<
+      [task: CollectBlockTask, cost: number] | undefined
+    >[] = Array.from(expectedValues.entries()).map(
+      ([blockId, expectedValue]) => {
+        const block = getNearestBlock(blockId);
 
-    let bestTask: CollectBlockTask | undefined;
-    let bestCost = Infinity;
+        return block
+          .derive((block) => {
+            if (block === null) return undefined;
 
-    for (const [blockId, expectedValue] of expectedValues) {
-      const block = findBlock(blockId);
-      if (block === null) continue;
+            const task = new CollectBlockTask(block, this.stack);
+            const cost = task.getCost().derive((cost) => cost / expectedValue);
 
-      const task = new CollectBlockTask(block, this.stack);
-
-      const cost = task.getCost() / expectedValue;
-
-      if (cost < bestCost) {
-        bestTask = task;
-        bestCost = cost;
+            return cost.derive(
+              (cost) => [task, cost] as [task: CollectBlockTask, cost: number]
+            );
+          })
+          .flat();
       }
-    }
+    );
 
-    if (bestTask === undefined) return;
+    const composed = ReactiveValue.compose(taskAndCostArray).derive((array) =>
+      array.filter((value) => value !== undefined)
+    );
 
-    return [bestTask, bestCost];
+    return getLowestCostTaskAndCost(composed);
   }
 
-  public async run() {
-    if (bot.inventory.count(this.id, null) >= this.amount) return;
+  public getTask(): ReactiveValue<CollectBlockTask | undefined> {
+    return this.getTaskAndCost().derive((taskAndCost) => taskAndCost?.[0]);
+  }
 
-    const taskAndCost = this.getTaskAndCost();
-    if (taskAndCost === undefined) {
+  public async run(): Promise<void | Task[]> {
+    const missing = this.getMissing();
+    if (missing.value === 0) return;
+
+    const reactiveTask = this.getTask();
+    const task = reactiveTask.value;
+    if (task === undefined) {
       console.warn('undefined task');
       return;
     }
 
-    return [taskAndCost[0]];
+    return [task];
   }
 
-  @BaseCostWrapper(OBTAIN_ITEM_MINING_CACHE_BASE_COST)
+  @AvoidInfiniteRecursion()
   protected getBaseCost() {
-    const taskAndCost = this.getTaskAndCost();
-    if (taskAndCost === undefined) return Infinity;
-
-    return taskAndCost[1];
-  }
-
-  public getCost() {
-    if (this.recursive) return Infinity;
-
-    return (
-      this.getBaseCost() *
-      Math.max(this.amount - bot.inventory.count(this.id, null), 0)
+    return this.getTaskAndCost().derive(
+      (taskAndCost) => taskAndCost?.[1] ?? Infinity
     );
   }
 

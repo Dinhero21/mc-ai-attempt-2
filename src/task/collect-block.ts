@@ -1,9 +1,10 @@
 import { Block } from 'prismarine-block';
 
-import bot from '../singleton/bot.js';
+import { itemCount } from '../inventory.js';
+import { ReactiveValue } from '../react.js';
 import { toolIds } from '../tools.js';
 import { DigBlockTask } from './dig-block.js';
-import Task from './index.js';
+import Task, { AvoidInfiniteRecursion, getLowestCostTask } from './index.js';
 import ObtainItemTask from './obtain-item/index.js';
 
 /**
@@ -14,42 +15,47 @@ export default class CollectBlockTask extends Task {
     super(stack);
   }
 
-  protected getTasks(): Task[] | undefined {
+  protected getTasks(): ReactiveValue<Task[] | undefined> {
     const digTask = new DigBlockTask(this.block, this.stack);
 
     if (this.block.canHarvest(0)) {
-      return [digTask];
+      return new ReactiveValue<Task[] | undefined>([digTask]);
     }
 
-    for (const item of bot.inventory.items()) {
-      if (!this.block.canHarvest(item.type)) continue;
+    const canAlreadyHarvest: ReactiveValue<boolean> = itemCount.derive(
+      (itemCount) => {
+        for (const [id, count] of itemCount.entries()) {
+          if (count <= 0) continue;
+          if (!this.block.canHarvest(id)) continue;
 
-      return [digTask];
-    }
+          return true;
+        }
 
-    let bestTask: ObtainItemTask | undefined;
-    let bestCost = Infinity;
-
-    for (const id of toolIds) {
-      if (!this.block.canHarvest(id)) continue;
-
-      const obtainTask = new ObtainItemTask(id, 1, this.stack);
-      const cost = obtainTask.getCost();
-
-      if (cost < bestCost) {
-        bestTask = obtainTask;
-        bestCost = cost;
+        return false;
       }
-    }
+    );
 
-    if (bestCost === Infinity) return;
-    if (bestTask === undefined) return;
+    // ? Should I place this inside of outside canHarvest
+    const tasks = toolIds
+      .filter((id) => this.block.canHarvest(id))
+      .map((id) => new ObtainItemTask(id, 1, this.stack));
+    // ? Should I place this inside of outside canHarvest
+    const bestTask = getLowestCostTask(tasks);
 
-    return [bestTask, digTask];
+    return ReactiveValue.compose([canAlreadyHarvest, bestTask]).derive(
+      ([canAlreadyHarvest, bestTask]) => {
+        if (canAlreadyHarvest) return [digTask];
+
+        if (bestTask === undefined) return;
+
+        return [bestTask, digTask];
+      }
+    ) as ReactiveValue<Task[] | undefined>;
   }
 
   public async run() {
-    const tasks = this.getTasks();
+    const reactiveTasks = this.getTasks();
+    const tasks = reactiveTasks.value;
     if (tasks === undefined) {
       console.warn('undefined tasks');
       return;
@@ -64,14 +70,19 @@ export default class CollectBlockTask extends Task {
     return [task];
   }
 
+  @AvoidInfiniteRecursion()
   public getCost() {
-    if (this.recursive) return Infinity;
-
     const tasks = this.getTasks();
+    return tasks
+      .derive((tasks) => {
+        if (tasks === undefined) return Infinity;
 
-    if (tasks === undefined) return Infinity;
+        const reactiveCostArray = tasks.map((task) => task.getCost());
+        const composed = ReactiveValue.compose(reactiveCostArray);
 
-    return tasks.reduce((a, b) => a + b.getCost(), 0);
+        return composed.derive((costs) => costs.reduce((a, b) => a + b, 0));
+      })
+      .flat();
   }
 
   public toString() {

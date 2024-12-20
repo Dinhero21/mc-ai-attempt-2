@@ -1,4 +1,3 @@
-import { Block } from 'prismarine-block';
 import { setTimeout as sleep } from 'timers/promises';
 
 import { GoalNear } from '../plugin/pathfinder.js';
@@ -8,8 +7,8 @@ import {
   SMELT_ITEM_INTERVAL_MS,
 } from '../settings.js';
 import bot from '../singleton/bot.js';
-import { findBlock } from '../world.js';
-import Task from './index.js';
+import { getNearestBlock } from '../world.js';
+import Task, { AvoidInfiniteRecursion, ReactiveInfinity } from './index.js';
 import ObtainItemTask from './obtain-item/index.js';
 
 const FUEL_ID = bot.registry.itemsByName[SMELT_ITEM_FUEL_ITEM_NAME].id;
@@ -20,6 +19,10 @@ const FUEL_ID = bot.registry.itemsByName[SMELT_ITEM_FUEL_ITEM_NAME].id;
  * @warning does not attempt to create a furnace
  */
 export default class SmeltItemTask extends Task {
+  public static furnaceBlock = getNearestBlock(
+    bot.registry.blocksByName.furnace.id
+  );
+
   /**
    * @param id id of the item to be smelted
    */
@@ -27,12 +30,9 @@ export default class SmeltItemTask extends Task {
     super(stack);
   }
 
-  protected getBlock(): Block | null {
-    return findBlock(bot.registry.blocksByName.furnace.id);
-  }
-
   public async run() {
-    const block = this.getBlock();
+    const reactiveBlock = SmeltItemTask.furnaceBlock;
+    const block = reactiveBlock.value;
     if (block === null) {
       console.warn('null furnace');
       return;
@@ -88,15 +88,17 @@ export default class SmeltItemTask extends Task {
     return output;
   }
 
+  @AvoidInfiniteRecursion()
   public getCost() {
-    if (this.recursive) return Infinity;
+    return SmeltItemTask.furnaceBlock
+      .derive((block) => {
+        if (block === null) return ReactiveInfinity;
 
-    const block = this.getBlock();
-    if (block === null) return Infinity;
-
-    // We can't synchronously fetch furnace data, so we gotta approximate
-    const task = new ObtainItemTask(this.id, 1, this.stack);
-    return task.getCost() + SMELT_ITEM_BASE_COST;
+        // We can't synchronously fetch furnace data, so we gotta approximate
+        const task = new ObtainItemTask(this.id, 1, this.stack);
+        return task.getCost().derive((cost) => cost + SMELT_ITEM_BASE_COST);
+      })
+      .flat();
   }
 
   public toString() {
