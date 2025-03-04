@@ -1,5 +1,3 @@
-import bot from './singleton/bot.js';
-
 // Increasing this might reduce CPU load (although not by much, since heuristic calculation is the bulk of the work)
 // Decreasing this might lead to faster execution, but, if it is lower than the server's ping, the bot could take decisions based on outdated information, which could lead to erroneous actions (such as taking the same action twice)
 export const TASK_SLEEP_DELAY_MS = 10;
@@ -53,11 +51,15 @@ export const FIND_BLOCK_MAX_DISTANCE = 16;
 // the bot frequently gets stuck on corners
 export const DISABLE_DIAGONAL_MOVEMENT = true;
 
+// in situations like:
+//  .
+// 12.G
+// where 1 is the bot
+//       2 is a block
+//       . is a path node
+//       G is the goal
+// the bot frequently gets stuck when jumping
+export const DISABLE_JUMPING = true;
+
 // false - use minimum value
 export const OBTAIN_ITEM_CRAFTING_USE_EXPECTED_VALUE = true;
-
-export const DUMP_REACTIVE_VALUES_TO_DOT = false;
-
-export const EVENT_PER_REACTIVE_VALUE_RECALCULATIONS = 5000;
-export const REACTIVE_VALUE_RECALCULATIONS_EVENT: VoidFunction | undefined =
-  undefined;

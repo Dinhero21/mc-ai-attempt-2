@@ -20,7 +20,10 @@ export class ObtainItemMiningTask extends BaseObtainItemTask {
     [task: CollectBlockTask, cost: number] | undefined
   > {
     const expectedValues = blockLootExpectedValueMap.get(this.id);
-    if (expectedValues === undefined) return new ReactiveValue<any>(undefined);
+    if (expectedValues === undefined)
+      return new ReactiveValue<
+        [task: CollectBlockTask, cost: number] | undefined
+      >(undefined);
 
     const taskAndCostArray: ReactiveValue<
       [task: CollectBlockTask, cost: number] | undefined

@@ -1,12 +1,5 @@
 import { registerCollectionCallback } from './gc.js';
-import { stream } from './graph.js';
-import {
-  EVENT_PER_REACTIVE_VALUE_RECALCULATIONS,
-  REACTIVE_VALUE_RECALCULATIONS_EVENT,
-} from './settings.js';
 // import bot from './singleton/bot.js';
-
-export let recalculations = 0;
 
 // to fix this nasty leak, I've tried:
 // 1. caching (as of d67f61704b58e355b5fa6c357b4ab80a6a58ee42)
@@ -24,8 +17,11 @@ export let recalculations = 0;
 //   got down to:
 //     Obtain_Item(cobblestone): 11507
 //     Obtain_Item(diamond): 17592
-
-const activeReactiveValues = new Set<ReactiveValue<any>>();
+// 5. backwards ref
+//   (should be equivalent to 4)
+//   got down to:
+//     Obtain_Item(cobblestone): 3320
+//     Obtain_Item(diamond): 3481
 
 export let reactiveValuesInMemory = 0;
 
@@ -41,13 +37,6 @@ export class ReactiveValue<T> {
     registerCollectionCallback(this, () => {
       reactiveValuesInMemory--;
     });
-
-    if (stream !== undefined)
-      stream.write(
-        `${this.id} [label=${JSON.stringify(
-          String(this._value)
-        )},fillcolor=red];\n`
-      );
   }
 
   public get value() {
@@ -62,18 +51,6 @@ export class ReactiveValue<T> {
     // console.log(`${this.id} value.change (${this.subscribers.size})`);
 
     this._value = value;
-
-    if (stream !== undefined)
-      stream.write(
-        `${this.id} [label=${JSON.stringify(String(this._value))}];\n`
-      );
-
-    recalculations++;
-    if (REACTIVE_VALUE_RECALCULATIONS_EVENT !== undefined) {
-      if (recalculations % EVENT_PER_REACTIVE_VALUE_RECALCULATIONS === 0) {
-        REACTIVE_VALUE_RECALCULATIONS_EVENT();
-      }
-    }
 
     this.notifySubscribers();
   }
@@ -92,49 +69,22 @@ export class ReactiveValue<T> {
   ) {
     this.subscribers.add(subscriber);
 
-    activeReactiveValues.add(this);
-
-    if (stream !== undefined)
-      stream.write(
-        `${this.id} [fillcolor=${
-          this.subscribers.size > 0 ? 'green' : 'red'
-        }];\n`
-      );
-
     if (callImmediately) subscriber(this.value);
   }
 
   public unsubscribe(subscriber: (value: T) => void) {
     this.subscribers.delete(subscriber);
-
-    if (this.subscribers.size === 0) {
-      activeReactiveValues.delete(this);
-    }
-
-    if (stream !== undefined)
-      stream.write(
-        `${this.id} [fillcolor=${
-          this.subscribers.size > 0 ? 'green' : 'red'
-        }];\n`
-      );
-
-    // if (this.subscribers.size === 0) {
-    //   this.destroy();
-    // }
   }
 
   public derive<U>(calculate: (value: T) => U): ReactiveValue<U> {
     const derived = new ReactiveValue<U>(undefined as any);
     const weakRef = new WeakRef(derived);
 
-    if (stream !== undefined)
-      stream.write(`${this.id} -> ${derived.id} [label="derive"];\n`);
-
     const updateDerived = (value: T) => {
       const derived = weakRef.deref();
       if (derived === undefined) {
         console.warn(
-          'something is wrong: derivation update called post-collection'
+          'something is wrong: derivation update attempt on non-existent ReactiveValue'
         );
         return;
       }
@@ -146,6 +96,7 @@ export class ReactiveValue<T> {
     registerCollectionCallback(derived, () => {
       this.unsubscribe(updateDerived);
     });
+    derived.refs.add(this);
 
     return derived;
   }
@@ -158,17 +109,12 @@ export class ReactiveValue<T> {
     );
     const weakRef = new WeakRef(composed);
 
-    for (const value of values) {
-      if (stream !== undefined)
-        stream.write(`${value.id} -> ${composed.id} [label="compose"];\n`);
-    }
-
     for (let i = 0; i < values.length; i++) {
       const updateComposed = (value: unknown) => {
         const composed = weakRef.deref();
         if (composed === undefined) {
           console.warn(
-            'something is wrong: composition update called post-collection'
+            'something is wrong: composition update attempt on non-existent ReactiveValue'
           );
           return;
         }
@@ -183,6 +129,7 @@ export class ReactiveValue<T> {
       registerCollectionCallback(composed, () => {
         values[i].unsubscribe(updateComposed);
       });
+      composed.refs.add(values[i]);
     }
 
     return composed;
@@ -197,15 +144,14 @@ export class ReactiveValue<T> {
     const setFlat = (value: T extends ReactiveValue<infer U> ? U : T) => {
       const flat = weakRef.deref();
       if (flat === undefined) {
-        console.warn('something is wrong: flat set called post-collection');
+        console.warn(
+          'something is wrong: flat set attempt on non-existent ReactiveValue'
+        );
         return;
       }
 
       flat.value = value;
     };
-
-    if (stream !== undefined)
-      stream.write(`${this.id} -> ${flat.id} [label="flat"];\n`);
 
     let cleanup: VoidFunction | undefined;
     this.subscribe((value) => {
@@ -213,17 +159,16 @@ export class ReactiveValue<T> {
       cleanup = undefined;
 
       if (value instanceof ReactiveValue) {
-        if (stream !== undefined)
-          stream.write(
-            `${this.id} -> ${value.id} [label="valueof (flat)",style=dotted];\n`
-          );
-        if (stream !== undefined)
-          stream.write(
-            `${value.id} -> ${flat.id} [label="flat (value)",style=dashed];\n`
-          );
-
         value.subscribe(setFlat);
-        cleanup = () => value.unsubscribe(setFlat);
+        registerCollectionCallback(flat, () => {
+          value.unsubscribe(setFlat);
+        });
+        flat.refs.add(value);
+
+        cleanup = () => {
+          value.unsubscribe(setFlat);
+          flat.refs.delete(value);
+        };
 
         return;
       }
@@ -236,6 +181,8 @@ export class ReactiveValue<T> {
 
     return flat;
   }
+
+  public readonly refs = new Set<any>();
 }
 
 export class ReactiveMap<K, V>

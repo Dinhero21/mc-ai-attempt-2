@@ -2,6 +2,7 @@ import {
   ALLOW_SPRINTING,
   DEBUG_VISUALS,
   DISABLE_DIAGONAL_MOVEMENT,
+  DISABLE_JUMPING,
 } from './settings.js';
 import bot from './singleton/bot.js';
 import ObtainItemTask from './task/obtain-item/index.js';
@@ -10,6 +11,8 @@ bot.pathfinder.movements.allowSprinting = ALLOW_SPRINTING;
 
 if (DISABLE_DIAGONAL_MOVEMENT)
   bot.pathfinder.movements.getMoveDiagonal = () => {};
+
+if (DISABLE_JUMPING) bot.pathfinder.movements.getMoveJumpUp = () => {};
 
 // ? Where should I put this
 if (DEBUG_VISUALS) {

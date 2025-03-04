@@ -22,6 +22,10 @@ TODO:
     - [x] Mining
     - [x] Picking
     - [x] Smelting
-  - [x] Caching
+  - Task
+    - [ ] Abortion
+    - [ ] Subdivision Hash
+  - Heuristic
+    - [x] Caching
     - [x] Reactive
-      - [ ] Garbage Collectable
+      - [x] Garbage Collectable
