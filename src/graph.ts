@@ -8,3 +8,8 @@ export const stream = DUMP_REACTIVE_VALUES_TO_DOT
 
 if (stream !== undefined)
   stream.write(`digraph G {\nnode [style=filled];\nrankdir=LR;\n`);
+
+const original = Array.prototype.toString;
+Array.prototype.toString = function () {
+  return `[${original.call(this)}]`;
+};

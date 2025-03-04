@@ -44,6 +44,7 @@ export class DigBlockTypeTask extends Task {
     super(stack);
   }
 
+  @CacheReactiveValue((task) => task.id)
   protected getTask(): ReactiveValue<DigBlockTask | undefined> {
     return getNearestBlock(this.id).derive((block) => {
       if (block === null) return;
@@ -64,7 +65,7 @@ export class DigBlockTypeTask extends Task {
   }
 
   @AvoidInfiniteRecursion()
-  @CacheReactiveValue((task) => task.id)
+  @CacheReactiveValue((task) => task.getTask().id)
   public getCost() {
     return this.getTask()
       .derive((task) => task?.getCost() ?? Infinity)

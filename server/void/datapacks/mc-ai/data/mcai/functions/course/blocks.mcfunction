@@ -5,6 +5,7 @@ setblock 0 1 -3 crafting_table keep
 
 function mcai:source/new {x: 2, y: 1, z: -1, block: stone}
 function mcai:source/new {x: 2, y: 1, z: 1, block: oak_log}
+function mcai:source/new {x: 4, y: 1, z: 0, block: obsidian}
 
 function mcai:source/new {x: -2, y: 1, z: -3, block: gold_ore}
 function mcai:source/new {x: -2, y: 1, z: -1, block: coal_ore}

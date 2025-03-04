@@ -24,3 +24,4 @@ TODO:
     - [x] Smelting
   - [x] Caching
     - [x] Reactive
+      - [ ] Garbage Collectable

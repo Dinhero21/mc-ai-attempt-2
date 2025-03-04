@@ -49,7 +49,7 @@ export default class ObtainItemCraftingTask extends BaseObtainItemTask {
       .flat();
   }
 
-  @CacheReactiveValue((task) => task.id)
+  @CacheReactiveValue((task) => task.getTaskAndCost().id)
   public getTask(): ReactiveValue<CraftRecipeTask | undefined> {
     return this.getTaskAndCost().derive((taskAndCost) => taskAndCost?.[0]);
   }
@@ -69,7 +69,7 @@ export default class ObtainItemCraftingTask extends BaseObtainItemTask {
   }
 
   @AvoidInfiniteRecursion()
-  @CacheReactiveValue((task) => task.id)
+  @CacheReactiveValue((task) => task.getTaskAndCost().id)
   public getBaseCost(): ReactiveValue<number> {
     return this.getTaskAndCost().derive(
       (taskAndCost) => taskAndCost?.[1] ?? Infinity

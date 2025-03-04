@@ -19,8 +19,6 @@ bot.once('inject_allowed', () => {
   });
 });
 
-// TODO: caching decorator
-// (can't use the method one because it's for class methods only)
 const cache = new Map<number, ReactiveValue<number>>();
 export function getReactiveItemCountForId(id: number): ReactiveValue<number> {
   const cached = cache.get(id);

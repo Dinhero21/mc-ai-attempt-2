@@ -46,6 +46,7 @@ export default class ObtainItemSmeltingTask extends BaseObtainItemTask {
 
   // here we don't have to use taskAndCost since cost is always the task's cost
   // (since an item is always smelted from a single item)
+  @CacheReactiveValue((task) => task.id)
   public getTask(): ReactiveValue<SmeltItemTask | undefined> {
     const item = bot.registry.items[this.id];
     const name = item.name;
@@ -85,7 +86,7 @@ export default class ObtainItemSmeltingTask extends BaseObtainItemTask {
   }
 
   @AvoidInfiniteRecursion()
-  @CacheReactiveValue((target) => target.id)
+  @CacheReactiveValue((task) => task.getTask().id)
   public getBaseCost() {
     return this.getTask()
       .derive((task) => task?.getCost() ?? Infinity)

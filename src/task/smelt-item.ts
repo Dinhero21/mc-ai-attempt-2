@@ -8,7 +8,11 @@ import {
 } from '../settings.js';
 import bot from '../singleton/bot.js';
 import { getNearestBlock } from '../world.js';
-import Task, { AvoidInfiniteRecursion, ReactiveInfinity } from './index.js';
+import Task, {
+  AvoidInfiniteRecursion,
+  CacheReactiveValue,
+  ReactiveInfinity,
+} from './index.js';
 import ObtainItemTask from './obtain-item/index.js';
 
 const FUEL_ID = bot.registry.itemsByName[SMELT_ITEM_FUEL_ITEM_NAME].id;
@@ -89,6 +93,7 @@ export default class SmeltItemTask extends Task {
   }
 
   @AvoidInfiniteRecursion()
+  @CacheReactiveValue((task) => task.id)
   public getCost() {
     return SmeltItemTask.furnaceBlock
       .derive((block) => {

@@ -44,13 +44,21 @@ bot.on('blockUpdate', (oldBlock, newBlock) => {
   blockCount.set(newId, (blockCount.get(newId) ?? 0) + 1);
 });
 
+const cache = new Map<number, ReactiveValue<Block | null>>();
 export function getNearestBlock(id: number): ReactiveValue<Block | null> {
-  return blockCount.getReactive(id).derive((count) => {
-    if (count === undefined || count === 0) return null;
+  const cached = cache.get(id);
+  if (cached !== undefined) return cached;
+
+  const nearestBlock = blockCount.getReactive(id).derive((count) => {
+    if (count === undefined || count <= 0) return null;
 
     return bot.findBlock({
       matching: id,
       maxDistance: FIND_BLOCK_MAX_DISTANCE,
     });
   });
+
+  cache.set(id, nearestBlock);
+
+  return nearestBlock;
 }

@@ -20,6 +20,7 @@ export default class ObtainItemTask extends BaseObtainItemTask {
     super(id, amount, stack, `obtain-item:${id}`);
   }
 
+  @CacheReactiveValue((task) => `${task.id}x${task.amount}`)
   protected getTask(): ReactiveValue<Task | undefined> {
     return getLowestCostTask([
       new ObtainItemPickingTask(this.id, this.stack),
@@ -29,8 +30,7 @@ export default class ObtainItemTask extends BaseObtainItemTask {
     ]) as ReactiveValue<Task | undefined>;
   }
 
-  // TODO: cache this
-  // performance impact should be minimal anyways (maybe even less then caching's overhead?)
+  @CacheReactiveValue((task) => `${task.id},${task.amount}`)
   protected getMissing(): ReactiveValue<number> {
     return getReactiveItemCountForId(this.id).derive((itemCount) =>
       Math.max(this.amount - itemCount, 0)
@@ -52,6 +52,7 @@ export default class ObtainItemTask extends BaseObtainItemTask {
   }
 
   @AvoidInfiniteRecursion()
+  @CacheReactiveValue((task) => task.getTask().id)
   public getCost(): ReactiveValue<number> {
     const task = this.getTask();
 

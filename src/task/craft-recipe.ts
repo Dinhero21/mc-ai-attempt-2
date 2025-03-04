@@ -132,7 +132,7 @@ export default class CraftRecipeTask extends Task {
   }
 
   @AvoidInfiniteRecursion()
-  @CacheReactiveValue((task) => task.recipe)
+  @CacheReactiveValue((task) => task.getTasks().id)
   public getCost() {
     const tasks = this.getTasks();
 

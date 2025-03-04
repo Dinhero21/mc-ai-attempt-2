@@ -25,7 +25,7 @@ export function harts(bot: Bot, options: BotOptions) {
           setTimeout(resolve, TASK_SLEEP_DELAY_MS)
         );
 
-        console.log('---');
+        console.clear();
 
         for (const [i, task] of harts.stack.entries()) {
           console.log(`${i + 1}. ${task} ${task.getCost().value}`);
@@ -60,7 +60,7 @@ export function harts(bot: Bot, options: BotOptions) {
           for (let i = 0; i < costs.length; i++) {
             if (oldCosts[i] === newCosts[i]) continue;
 
-            harts.stack = harts.stack.slice(0, i);
+            harts.stack = harts.stack.slice(0, i + 1);
             break;
           }
       }

@@ -4,116 +4,12 @@ import {
   DISABLE_DIAGONAL_MOVEMENT,
 } from './settings.js';
 import bot from './singleton/bot.js';
-import ObtainItemCraftingTask from './task/obtain-item/crafting.js';
 import ObtainItemTask from './task/obtain-item/index.js';
-import { ObtainItemMiningTask } from './task/obtain-item/mining.js';
-import ObtainItemSmeltingTask from './task/obtain-item/smelting.js';
 
 bot.pathfinder.movements.allowSprinting = ALLOW_SPRINTING;
 
 if (DISABLE_DIAGONAL_MOVEMENT)
   bot.pathfinder.movements.getMoveDiagonal = () => {};
-
-bot.on('chat', async (username, message) => {
-  console.log(`${username}: ${message}`);
-  if (message !== 'start') return;
-
-  // const block = findBlock(bot.registry.blocksByName.stone.id);
-  // if (block === null) return;
-
-  // const task = new CollectBlockTask(block, []);
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.oak_log.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.oak_planks.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.stick.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.wooden_pickaxe.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.cobblestone.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.cobblestone_pickaxe.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.raw_iron.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.iron_ingot.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.iron_pickaxe.id,
-  //   1,
-  //   []
-  // );
-
-  // const task = new ObtainItemTask(
-  //   bot.registry.itemsByName.diamond.id,
-  //   1,
-  //   []
-  // );
-
-  // const crafting = new ObtainItemCraftingTask(
-  //   bot.registry.itemsByName.iron_ingot.id,
-  //   2,
-  //   []
-  // );
-
-  // const smelting = new ObtainItemSmeltingTask(
-  //   bot.registry.itemsByName.iron_ingot.id,
-  //   2,
-  //   []
-  // );
-
-  // const raw = new ObtainItemTask(bot.registry.itemsByName.raw_iron.id, 1, []);
-
-  // console.log('crafting.cost:', crafting.getCost());
-  // console.log('smelting.cost:', smelting.getCost());
-
-  // if (true as boolean) return;
-
-  const task = new ObtainItemTask(bot.registry.itemsByName.diamond.id, 1, []);
-
-  console.time('calculating cost');
-  console.log('cost:', task.getCost());
-  console.timeEnd('calculating cost');
-
-  console.time('executing task');
-  await bot.harts.run(task);
-  console.timeEnd('executing task');
-
-  bot.chat('Done!');
-});
 
 // ? Where should I put this
 if (DEBUG_VISUALS) {
@@ -122,12 +18,15 @@ if (DEBUG_VISUALS) {
   bot.on('path_reset', () => {
     bot.chat('/kill @e[tag=path]');
   });
+
   bot.on('path_stop', () => {
     bot.chat('/kill @e[tag=path]');
   });
+
   bot.on('goal_reached', () => {
     bot.chat('/kill @e[tag=path]');
   });
+
   bot.on('path_update', (path) => {
     bot.chat('/kill @e[tag=path]');
     for (const move of path.path) {
@@ -146,16 +45,21 @@ if (DEBUG_VISUALS) {
       );
     }
   });
+
   // let moves: Move[] | undefined;
+
   // bot.on('path_reset', () => {
   //   moves = undefined;
   // });
+
   // bot.on('path_stop', () => {
   //   moves = undefined;
   // });
+
   // bot.on('path_update', (path) => {
   //   moves = path.path;
   // });
+
   // setInterval(() => {
   //   if (moves === undefined) return;
   //   for (const move of moves) {
@@ -192,6 +96,7 @@ if (DEBUG_VISUALS) {
   //     );
   //   }
   // }, 1000 / 12);
+
   // function particle(
   //   r: number,
   //   g: number,
@@ -211,3 +116,56 @@ if (DEBUG_VISUALS) {
   //   );
   // }
 }
+
+type Command = (...args: string[]) => void | Promise<void>;
+
+const commands: Map<string, Command> = new Map();
+
+commands.set('obtain', async (itemName, countString) => {
+  if (itemName === undefined) {
+    bot.chat('Usage: obtain <item>');
+    return;
+  }
+
+  const item = bot.registry.itemsByName[itemName];
+  if (item === undefined) {
+    bot.chat(`Unknown item: ${itemName}`);
+    return;
+  }
+
+  let count = parseInt(countString);
+  if (isNaN(count)) {
+    count = 1;
+  }
+
+  const task = new ObtainItemTask(item.id, count, []);
+
+  const start = performance.now();
+  await bot.harts.run(task);
+  const end = performance.now();
+
+  const date = new Date(end - start);
+
+  bot.chat(
+    `Done in ${date.getUTCHours()}h${date.getUTCMinutes()}m${date.getUTCSeconds()}s${date.getUTCMilliseconds()}ms!`
+  );
+});
+
+bot.on('chat', async (username, message) => {
+  console.log(`${username}: ${message}`);
+  if (!message.startsWith('@')) return;
+
+  const commandMessage = message.slice(1);
+  const args = commandMessage.split(' ');
+
+  const commandName = args.shift();
+  if (commandName === undefined) return;
+
+  const command = commands.get(commandName);
+  if (command === undefined) {
+    bot.chat(`Unknown command: ${commandName}`);
+    return;
+  }
+
+  await command(...args);
+});

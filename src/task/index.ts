@@ -79,12 +79,18 @@ export function AvoidInfiniteRecursion(
   };
 }
 
+const cache = new Map<string, ReactiveValue<Task | undefined>>();
 export function getLowestCostTask<T extends Task>(
   tasks: T[]
 ): ReactiveValue<T | undefined> {
   const costs = tasks.map((task) => task.getCost());
 
-  return ReactiveValue.compose(costs).derive((costs) => {
+  const cacheKey = costs.map((cost) => cost.id).join(',');
+
+  const cached = cache.get(cacheKey);
+  if (cached !== undefined) return cached as ReactiveValue<T | undefined>;
+
+  const result = ReactiveValue.compose(costs).derive((costs) => {
     let bestCost = Infinity;
     let bestTask: T | undefined;
 
@@ -99,4 +105,8 @@ export function getLowestCostTask<T extends Task>(
 
     return bestTask;
   });
+
+  cache.set(cacheKey, result as ReactiveValue<Task | undefined>);
+
+  return result;
 }

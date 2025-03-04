@@ -1,6 +1,6 @@
 import { getReactiveItemCountForId } from '../../inventory.js';
 import { ReactiveValue } from '../../react.js';
-import Task, { AvoidInfiniteRecursion } from '../index.js';
+import Task, { AvoidInfiniteRecursion, CacheReactiveValue } from '../index.js';
 
 export default abstract class BaseObtainItemTask extends Task {
   constructor(
@@ -12,8 +12,7 @@ export default abstract class BaseObtainItemTask extends Task {
     super(stack, stackId);
   }
 
-  // TODO: cache this
-  // performance impact should be minimal anyways (maybe even less then caching's overhead?)
+  @CacheReactiveValue((task) => `${task.id},${task.amount}`)
   protected getMissing(): ReactiveValue<number> {
     return getReactiveItemCountForId(this.id).derive((itemCount) =>
       Math.max(this.amount - itemCount, 0)
@@ -21,6 +20,11 @@ export default abstract class BaseObtainItemTask extends Task {
   }
 
   @AvoidInfiniteRecursion()
+  @CacheReactiveValue(
+    // really, it should be `${task.getBaseCost().id},${task.getMissing().id}`, but we don't know the value of getBaseCost yet
+    // ? should I include task.constructor.name
+    (task) => `${task.constructor.name}(${task.id}x${task.amount})`
+  )
   public getCost(): ReactiveValue<number> {
     if (!('getBaseCost' in this)) {
       throw new TypeError(
@@ -75,25 +79,41 @@ export default abstract class BaseObtainItemTask extends Task {
   }
 }
 
+const cache = new Map<
+  number,
+  ReactiveValue<[task: Task, cost: number] | undefined>
+>();
 export function getLowestCostTaskAndCost<T extends Task>(
   taskAndCosts: ReactiveValue<[task: T, cost: number][]>
 ): ReactiveValue<[task: T, cost: number] | undefined> {
-  return taskAndCosts.derive((taskAndCosts) => {
-    let bestTask: T | undefined;
-    let bestCost = Infinity;
+  const cached = cache.get(taskAndCosts.id);
+  if (cached !== undefined)
+    return cached as ReactiveValue<[task: T, cost: number] | undefined>;
 
-    for (const [task, cost] of taskAndCosts) {
-      if (Number.isNaN(cost)) throw new Error(`${task}_Cost is NaN`);
+  const result: ReactiveValue<[task: T, cost: number] | undefined> =
+    taskAndCosts.derive((taskAndCosts) => {
+      let bestTask: T | undefined;
+      let bestCost = Infinity;
 
-      if (cost < bestCost) {
-        bestTask = task;
-        bestCost = cost;
+      for (const [task, cost] of taskAndCosts) {
+        if (Number.isNaN(cost)) throw new Error(`${task}_Cost is NaN`);
+
+        if (cost < bestCost) {
+          bestTask = task;
+          bestCost = cost;
+        }
       }
-    }
 
-    if (bestTask === undefined) return;
-    if (bestCost === Infinity) return;
+      if (bestTask === undefined) return;
+      if (bestCost === Infinity) return;
 
-    return [bestTask, bestCost];
-  });
+      return [bestTask, bestCost];
+    });
+
+  cache.set(
+    taskAndCosts.id,
+    result as ReactiveValue<[task: Task, cost: number] | undefined>
+  );
+
+  return result;
 }

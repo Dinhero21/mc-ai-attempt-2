@@ -1,25 +1,27 @@
 import { stream } from './graph.js';
-import { PARTICLE_PER_REACTIVE_VALUE_RECALCULATIONS } from './settings.js';
-import bot from './singleton/bot.js';
+import {
+  EVENT_PER_REACTIVE_VALUE_RECALCULATIONS,
+  REACTIVE_VALUE_RECALCULATIONS_EVENT,
+} from './settings.js';
+// import bot from './singleton/bot.js';
 
-let recalculations = 0;
-// bot.once('spawn', () => {
-//   setInterval(() => {
-//     if (recalculations === 0) return;
+export let recalculations = 0;
 
-//     const created = Math.min(recalculations, 1000);
+// to fix this nasty leak, I've tried:
+// 1. freeing when there are no subscribers for the second time
+//   didn't work, too strict
+// 2. extensive caching
+//   got down to:
+//     Obtain_Item(cobblestone): 11696
+//     Obtain_Item(diamond): 18682
 
-//     bot.chat(`/particle flame ~ ~1.7 ~ 0 0 0 1 ${created} force`);
-
-//     recalculations -= created;
-//   }, 10);
-// });
-
-let i = 0;
+export let i = 0;
 export class ReactiveValue<T> {
   public readonly id = i++;
 
   constructor(protected _value: T) {
+    // console.log(`${this.id} create`);
+
     if (stream !== undefined)
       stream.write(
         `${this.id} [label=${JSON.stringify(
@@ -33,7 +35,11 @@ export class ReactiveValue<T> {
   }
 
   public set value(value: T) {
+    // console.log(`${this.id} value.set`);
+
     if (this._value === value) return;
+
+    // console.log(`${this.id} value.change (${this.subscribers.size})`);
 
     this._value = value;
 
@@ -42,11 +48,10 @@ export class ReactiveValue<T> {
         `${this.id} [label=${JSON.stringify(String(this._value))}];\n`
       );
 
-    if (PARTICLE_PER_REACTIVE_VALUE_RECALCULATIONS !== undefined) {
-      recalculations++;
-
-      if (recalculations % PARTICLE_PER_REACTIVE_VALUE_RECALCULATIONS === 0) {
-        bot.chat(`/particle flame ~ ~1.7 ~ 0 0 0 0.1 1 force`);
+    recalculations++;
+    if (REACTIVE_VALUE_RECALCULATIONS_EVENT !== undefined) {
+      if (recalculations % EVENT_PER_REACTIVE_VALUE_RECALCULATIONS === 0) {
+        REACTIVE_VALUE_RECALCULATIONS_EVENT();
       }
     }
 
@@ -65,6 +70,10 @@ export class ReactiveValue<T> {
     subscriber: (value: T) => void,
     callImmediately: boolean = true
   ) {
+    if (this.destroyed) {
+      throw new Error('subscription attempt post-destruction');
+    }
+
     this.subscribers.add(subscriber);
 
     if (stream !== undefined)
@@ -86,6 +95,10 @@ export class ReactiveValue<T> {
           this.subscribers.size > 0 ? 'green' : 'red'
         }];\n`
       );
+
+    // if (this.subscribers.size === 0) {
+    //   this.destroy();
+    // }
   }
 
   public derive<U>(calculate: (value: T) => U): ReactiveValue<U> {
@@ -94,9 +107,12 @@ export class ReactiveValue<T> {
     if (stream !== undefined)
       stream.write(`${this.id} -> ${derived.id} [label="derive"];\n`);
 
-    this.subscribe((value) => {
+    const updateDerived = (value: T) => {
       derived.value = calculate(value);
-    });
+    };
+
+    this.subscribe(updateDerived);
+    derived.addSubscription(this, updateDerived);
 
     return derived;
   }
@@ -114,17 +130,21 @@ export class ReactiveValue<T> {
     }
 
     for (let i = 0; i < values.length; i++) {
-      values[i].subscribe((value) => {
+      const updateComposed = (value: unknown) => {
         // if (composed.value[i] === value) return;
 
         composed.value[i] = value;
         composed.notifySubscribers();
-      }, false);
+      };
+
+      values[i].subscribe(updateComposed, false);
+      composed.addSubscription(values[i], updateComposed);
     }
 
     return composed;
   }
 
+  // impact is minimal enough to not have garbage collection logic
   public flat(): ReactiveValue<T extends ReactiveValue<infer U> ? U : T> {
     const flat = new ReactiveValue<T extends ReactiveValue<infer U> ? U : T>(
       undefined as any
@@ -164,6 +184,37 @@ export class ReactiveValue<T> {
     });
 
     return flat;
+  }
+
+  // Garbage Collection
+
+  protected readonly subscriptions = new Set<
+    [WeakRef<ReactiveValue<any>>, WeakRef<(value: any) => void>]
+  >();
+
+  public addSubscription<T>(
+    emitter: ReactiveValue<T>,
+    subscriber: (value: T) => void
+  ) {
+    this.subscriptions.add([new WeakRef(emitter), new WeakRef(subscriber)]);
+  }
+
+  protected destroyed = false;
+
+  protected destroy(): void {
+    console.count('destroy');
+
+    this.destroyed = true;
+
+    for (const [emitterRef, subscriberRef] of this.subscriptions) {
+      const emitter = emitterRef.deref();
+      if (emitter === undefined) continue;
+
+      const subscriber = subscriberRef.deref();
+      if (subscriber === undefined) continue;
+
+      emitter.unsubscribe(subscriber);
+    }
   }
 }
 

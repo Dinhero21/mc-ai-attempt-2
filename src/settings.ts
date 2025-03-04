@@ -1,3 +1,5 @@
+import bot from './singleton/bot.js';
+
 // Increasing this might reduce CPU load (although not by much, since heuristic calculation is the bulk of the work)
 // Decreasing this might lead to faster execution, but, if it is lower than the server's ping, the bot could take decisions based on outdated information, which could lead to erroneous actions (such as taking the same action twice)
 export const TASK_SLEEP_DELAY_MS = 10;
@@ -32,6 +34,8 @@ export const PICKING_ITEM_BASE_COST = 0.1;
 // 2 * CRAFT_RECIPE_BASE_COST > SMELT_ITEM_BASE_COST + DIG_BLOCK_BASE_COST
 // if not, then crafting ingots into nuggets and back is cheaper than mining and smelting raw ore into ingots
 // this is why SMELT_ITEM_BASE_COST is SO high and why CRAFT_RECIPE_BASE_COST is so low
+// 4 * DIG_BLOCK_BASE_COST > CRAFT_RECIPE_BASE_COST + DIG_BLOCK_BASE_COST
+// if not, then mining oak planks from mineshafts becomes cheaper than crafting planks from oak logs
 
 // Disable if not OP
 export const DEBUG_VISUALS = true;
@@ -40,11 +44,11 @@ export const SMELT_ITEM_FUEL_ITEM_NAME = 'coal';
 
 // none is the same speed as than cost-delta and _may_ lead to erroneous decisions based on outdated information, don't use
 export const STACK_PRUNING_METHOD: 'none' | 'cost-delta' /* | 'full' */ =
-  'cost-delta';
+  'none';
 
 export const ALLOW_SPRINTING = true;
 
-export const FIND_BLOCK_MAX_DISTANCE = 256;
+export const FIND_BLOCK_MAX_DISTANCE = 16;
 
 // the bot frequently gets stuck on corners
 export const DISABLE_DIAGONAL_MOVEMENT = true;
@@ -52,8 +56,8 @@ export const DISABLE_DIAGONAL_MOVEMENT = true;
 // false - use minimum value
 export const OBTAIN_ITEM_CRAFTING_USE_EXPECTED_VALUE = true;
 
-export const DUMP_REACTIVE_VALUES_TO_DOT = false;
+export const DUMP_REACTIVE_VALUES_TO_DOT = true;
 
-export const PARTICLE_PER_REACTIVE_VALUE_RECALCULATIONS:
-  | number
-  | undefined = 1000;
+export const EVENT_PER_REACTIVE_VALUE_RECALCULATIONS = 5000;
+export const REACTIVE_VALUE_RECALCULATIONS_EVENT: VoidFunction | undefined =
+  undefined;

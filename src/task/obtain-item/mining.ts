@@ -50,6 +50,7 @@ export class ObtainItemMiningTask extends BaseObtainItemTask {
     return getLowestCostTaskAndCost(composed);
   }
 
+  @CacheReactiveValue((task) => task.getTaskAndCost().id)
   public getTask(): ReactiveValue<CollectBlockTask | undefined> {
     return this.getTaskAndCost().derive((taskAndCost) => taskAndCost?.[0]);
   }
@@ -69,6 +70,7 @@ export class ObtainItemMiningTask extends BaseObtainItemTask {
   }
 
   @AvoidInfiniteRecursion()
+  @CacheReactiveValue((task) => task.getTaskAndCost().id)
   protected getBaseCost() {
     return this.getTaskAndCost().derive(
       (taskAndCost) => taskAndCost?.[1] ?? Infinity
