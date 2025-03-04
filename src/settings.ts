@@ -56,7 +56,7 @@ export const DISABLE_DIAGONAL_MOVEMENT = true;
 // false - use minimum value
 export const OBTAIN_ITEM_CRAFTING_USE_EXPECTED_VALUE = true;
 
-export const DUMP_REACTIVE_VALUES_TO_DOT = true;
+export const DUMP_REACTIVE_VALUES_TO_DOT = false;
 
 export const EVENT_PER_REACTIVE_VALUE_RECALCULATIONS = 5000;
 export const REACTIVE_VALUE_RECALCULATIONS_EVENT: VoidFunction | undefined =
