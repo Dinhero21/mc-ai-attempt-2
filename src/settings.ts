@@ -40,7 +40,8 @@ export const DEBUG_VISUALS = true;
 
 export const SMELT_ITEM_FUEL_ITEM_NAME = 'coal';
 
-// none is the same speed as than cost-delta and _may_ lead to erroneous decisions based on outdated information, don't use
+// none leads to less calculations but may lead to erroneous actions (such as taking the same action twice) compared with cost-delta
+// cost-delta is much slower due to the cachelessness of SmeltItemTask
 export const STACK_PRUNING_METHOD: 'none' | 'cost-delta' /* | 'full' */ =
   'none';
 
@@ -52,6 +53,7 @@ export const FIND_BLOCK_MAX_DISTANCE = 16;
 export const DISABLE_DIAGONAL_MOVEMENT = true;
 
 // in situations like:
+// top-down:
 //  .
 // 12.G
 // where 1 is the bot

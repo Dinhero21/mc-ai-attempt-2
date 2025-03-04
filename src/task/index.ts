@@ -1,3 +1,4 @@
+import { AbortionHandler } from '../abort.js';
 import { ReactiveValue } from '../react.js';
 
 type MaybePromise<T> = T | Promise<T>;
@@ -16,7 +17,8 @@ export default abstract class Task {
     }
   }
 
-  public abstract run(): MaybePromise<void | Task[]>;
+  // for whatever reason, I need to type ah on every derived class
+  public abstract run(ah: AbortionHandler): MaybePromise<void | Task[]>;
   // public abstract stop(): void;
 
   public abstract getCost(): ReactiveValue<number>;

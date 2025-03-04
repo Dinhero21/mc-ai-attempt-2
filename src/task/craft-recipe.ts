@@ -1,5 +1,6 @@
 import { Recipe } from 'prismarine-recipe';
 
+import { AbortionHandler } from '../abort.js';
 import { getReactiveItemCountForId } from '../inventory.js';
 import { GoalNear } from '../plugin/pathfinder.js';
 import { ReactiveValue } from '../react.js';
@@ -57,7 +58,12 @@ export default class CraftRecipeTask extends Task {
     );
   }
 
-  public async run(): Promise<void | Task[]> {
+  public async run(ah: AbortionHandler): Promise<void | Task[]> {
+    if (ah.aborted) return;
+    ah.on('abort', () => {
+      bot.pathfinder.stop();
+    });
+
     const reactiveTasks = this.getTasks();
     const tasks = reactiveTasks.value;
 
@@ -125,7 +131,9 @@ export default class CraftRecipeTask extends Task {
         CRAFT_RECIPE_CRAFTING_TABLE_DISTANCE
       );
 
-      await bot.pathfinder.goto(goal);
+      if (await bot.pathfinder.goto(goal).catch(() => true)) return;
+
+      if (ah.aborted) return;
     }
 
     await bot.craft(this.recipe, 1, craftingTable ?? undefined);

@@ -23,7 +23,7 @@ TODO:
     - [x] Picking
     - [x] Smelting
   - Task
-    - [ ] Abortion
+    - [x] Abortion
     - [ ] Subdivision Hash
   - Heuristic
     - [x] Caching

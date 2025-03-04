@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from 'timers/promises';
 
+import { AbortionHandler } from '../abort.js';
 import { GoalNear } from '../plugin/pathfinder.js';
 import {
   SMELT_ITEM_BASE_COST,
@@ -34,7 +35,12 @@ export default class SmeltItemTask extends Task {
     super(stack);
   }
 
-  public async run() {
+  public async run(ah: AbortionHandler) {
+    if (ah.aborted) return;
+    ah.on('abort', () => {
+      bot.pathfinder.stop();
+    });
+
     const reactiveBlock = SmeltItemTask.furnaceBlock;
     const block = reactiveBlock.value;
     if (block === null) {
@@ -48,18 +54,26 @@ export default class SmeltItemTask extends Task {
       block.position.z,
       3
     );
-    await bot.pathfinder.goto(goal);
+    if (await bot.pathfinder.goto(goal).catch(() => true)) return;
+
+    if (ah.aborted) return;
 
     const furnace = await bot.openFurnace(block);
+
+    if (ah.aborted) return;
 
     const output = await (async () => {
       while (true) {
         await sleep(SMELT_ITEM_INTERVAL_MS);
 
+        if (ah.aborted) return;
+
         if (furnace.outputItem() !== null) {
           await furnace.takeOutput().catch(console.warn);
           return;
         }
+
+        if (ah.aborted) return;
 
         if (
           (furnace.progress === 0 || furnace.progress === null) &&
@@ -67,12 +81,16 @@ export default class SmeltItemTask extends Task {
         ) {
           if (furnace.inputItem() !== null) await furnace.takeInput();
 
+          if (ah.aborted) return;
+
           if (bot.inventory.count(this.id, null) === 0) {
             return [this, new ObtainItemTask(this.id, 1, this.stack)];
           }
 
           await furnace.putInput(this.id, null, 1).catch(console.warn);
         }
+
+        if (ah.aborted) return;
 
         if (
           (furnace.fuel === 0 || furnace.fuel === null) &&
@@ -84,6 +102,8 @@ export default class SmeltItemTask extends Task {
 
           await furnace.putFuel(FUEL_ID, null, 1).catch(console.warn);
         }
+
+        if (ah.aborted) return;
       }
     })();
 

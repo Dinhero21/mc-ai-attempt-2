@@ -1,5 +1,6 @@
 import { Bot, BotOptions } from 'mineflayer';
 
+import { AbortionHandler } from '../abort.js';
 import { STACK_PRUNING_METHOD, TASK_SLEEP_DELAY_MS } from '../settings.js';
 import Task from '../task/index.js';
 
@@ -41,7 +42,24 @@ export function harts(bot: Bot, options: BotOptions) {
 
         const oldCosts = costs.map((cost) => cost.value);
 
-        const substitute = await task.run();
+        const ah = new AbortionHandler();
+        const abort = () => {
+          ah.abort();
+        };
+
+        if (STACK_PRUNING_METHOD === 'cost-delta') {
+          for (const cost of costs) {
+            cost.subscribe(abort, false);
+          }
+        }
+
+        const substitute = await task.run(ah);
+
+        if (STACK_PRUNING_METHOD === 'cost-delta') {
+          for (const cost of costs) {
+            cost.unsubscribe(abort);
+          }
+        }
 
         const newCosts = costs.map((cost) => cost.value);
 

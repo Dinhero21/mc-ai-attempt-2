@@ -1,5 +1,6 @@
 import { Entity } from 'prismarine-entity';
 
+import { AbortionHandler } from '../../abort.js';
 import { GoalFollow } from '../../plugin/pathfinder.js';
 import { ReactiveSet, ReactiveValue } from '../../react.js';
 import {
@@ -49,7 +50,12 @@ export class ObtainItemPickingTask extends Task {
     });
   }
 
-  public async run() {
+  public async run(ah: AbortionHandler) {
+    if (ah.aborted) return;
+    ah.on('abort', () => {
+      bot.pathfinder.stop();
+    });
+
     const reactiveEntity = this.getEntity();
     const entity = reactiveEntity.value;
     if (entity === undefined) {
@@ -68,7 +74,7 @@ export class ObtainItemPickingTask extends Task {
       }
     }, PICKING_ITEM_INTERVAL_MS);
 
-    await bot.pathfinder.goto(goal).catch(() => {});
+    if (await bot.pathfinder.goto(goal).catch(() => true)) return;
 
     clearInterval(interval);
   }

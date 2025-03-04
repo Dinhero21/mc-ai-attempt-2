@@ -1,5 +1,6 @@
 import { Block } from 'prismarine-block';
 
+import { AbortionHandler } from '../abort.js';
 import { GoalNear } from '../plugin/pathfinder.js';
 import { ReactiveValue } from '../react.js';
 import { DIG_BLOCK_BASE_COST } from '../settings.js';
@@ -15,18 +16,28 @@ export class DigBlockTask extends Task {
     super(stack);
   }
 
-  public async run(): Promise<void> {
+  public async run(ah: AbortionHandler): Promise<void> {
+    if (ah.aborted) return;
+    ah.on('abort', () => {
+      bot.pathfinder.stop();
+      bot.stopDigging();
+    });
+
     const block = this.block;
     const pos = block.position;
 
     const goal = new GoalNear(pos.x, pos.y, pos.z, 1);
 
-    await bot.pathfinder.goto(goal);
+    if (await bot.pathfinder.goto(goal).catch(() => true)) return;
+
+    if (ah.aborted) return;
 
     const tool = bot.pathfinder.bestHarvestTool(block);
     if (tool !== null) bot.equip(tool, 'hand');
 
     await bot.dig(block);
+
+    if (ah.aborted) return;
   }
 
   protected cost = new ReactiveValue(DIG_BLOCK_BASE_COST);
