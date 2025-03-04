@@ -40,12 +40,16 @@ export class DigBlockTask extends Task {
     if (ah.aborted) return;
   }
 
+  public getSubdivisionHash() {
+    return ReactiveValue.const(undefined);
+  }
+
   protected cost = new ReactiveValue(DIG_BLOCK_BASE_COST);
   public getCost() {
     return this.cost;
   }
 
-  public toString() {
+  public getHash() {
     return `${this.constructor.name}(${this.block.name})`;
   }
 }
@@ -75,6 +79,11 @@ export class DigBlockTypeTask extends Task {
     return [task];
   }
 
+  @CacheReactiveValue((task) => task.getTask().id)
+  public getSubdivisionHash() {
+    return this.getTask().derive((task) => task?.getHash());
+  }
+
   @AvoidInfiniteRecursion()
   @CacheReactiveValue((task) => task.getTask().id)
   public getCost() {
@@ -83,7 +92,7 @@ export class DigBlockTypeTask extends Task {
       .flat();
   }
 
-  public toString() {
+  public getHash() {
     const block = bot.registry.blocks[this.id];
 
     return `${this.constructor.name}(${block.name})`;

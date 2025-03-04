@@ -183,6 +183,19 @@ export class ReactiveValue<T> {
   }
 
   public readonly refs = new Set<any>();
+
+  // values
+
+  protected static constCache = new Map<any, ReactiveValue<any>>();
+  static const<T>(primitive: T): ReactiveValue<T> {
+    const cached = this.constCache.get(primitive);
+    if (cached !== undefined) return cached;
+
+    const value = new ReactiveValue(primitive);
+    this.constCache.set(primitive, value);
+
+    return value;
+  }
 }
 
 export class ReactiveMap<K, V>

@@ -24,7 +24,7 @@ TODO:
     - [x] Smelting
   - Task
     - [x] Abortion
-    - [ ] Subdivision Hash
+    - [x] Subdivision Hash
   - Heuristic
     - [x] Caching
     - [x] Reactive

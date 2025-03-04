@@ -38,45 +38,38 @@ export function harts(bot: Bot, options: BotOptions) {
           break;
         }
 
-        const costs = harts.stack.map((task) => task.getCost());
+        const hashes = harts.stack.map((task) => task.getSubdivisionHash());
 
-        const oldCosts = costs.map((cost) => cost.value);
+        const oldHashes = hashes.map((hash) => hash.value);
 
         const ah = new AbortionHandler();
         const abort = () => {
           ah.abort();
         };
 
-        if (STACK_PRUNING_METHOD === 'cost-delta') {
-          for (const cost of costs) {
-            cost.subscribe(abort, false);
+        if (STACK_PRUNING_METHOD === 'subdivision-hash') {
+          for (const hash of hashes) {
+            hash.subscribe(abort, false);
           }
         }
 
         const substitute = await task.run(ah);
 
-        if (STACK_PRUNING_METHOD === 'cost-delta') {
-          for (const cost of costs) {
-            cost.unsubscribe(abort);
+        if (STACK_PRUNING_METHOD === 'subdivision-hash') {
+          for (const hash of hashes) {
+            hash.unsubscribe(abort);
           }
         }
 
-        const newCosts = costs.map((cost) => cost.value);
+        const newHashes = hashes.map((hash) => hash.value);
 
         if (substitute !== undefined) {
           harts.stack.push(...substitute);
         }
 
-        // if (
-        //   STACK_PRUNING_METHOD === 'full' &&
-        //   (substitute === undefined || substitute.length === 0)
-        // ) {
-        //   harts.stack = [harts.stack[0]];
-        // }
-
-        if (STACK_PRUNING_METHOD === 'cost-delta')
-          for (let i = 0; i < costs.length; i++) {
-            if (oldCosts[i] === newCosts[i]) continue;
+        if (STACK_PRUNING_METHOD === 'subdivision-hash')
+          for (let i = 0; i < hashes.length; i++) {
+            if (oldHashes[i] === newHashes[i]) continue;
 
             harts.stack = harts.stack.slice(0, i + 1);
             break;

@@ -72,6 +72,11 @@ export class ObtainItemMiningTask extends BaseObtainItemTask {
     return [task];
   }
 
+  @CacheReactiveValue((task) => task.getTask().id)
+  public getSubdivisionHash() {
+    return this.getTask().derive((task) => task?.getHash());
+  }
+
   @AvoidInfiniteRecursion()
   @CacheReactiveValue((task) => task.getTaskAndCost().id)
   protected getBaseCost() {
@@ -80,7 +85,11 @@ export class ObtainItemMiningTask extends BaseObtainItemTask {
     );
   }
 
-  public toString() {
+  public getHash(): string {
+    return `${this.constructor.name}(${this.id}×${this.amount})`;
+  }
+
+  public toString(): string {
     const item = bot.registry.items[this.id];
 
     return `${this.constructor.name}(${item.name}×${this.amount})`;

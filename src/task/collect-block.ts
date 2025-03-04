@@ -70,6 +70,17 @@ export default class CollectBlockTask extends Task {
     return [task];
   }
 
+  public getSubdivisionHash() {
+    return this.getTasks().derive((tasks) => {
+      if (tasks === undefined) return undefined;
+
+      const task = tasks[0];
+      if (task === undefined) return undefined;
+
+      return task.getHash();
+    });
+  }
+
   @AvoidInfiniteRecursion()
   public getCost() {
     const tasks = this.getTasks();
@@ -85,7 +96,7 @@ export default class CollectBlockTask extends Task {
       .flat();
   }
 
-  public toString() {
+  public getHash() {
     return `${this.constructor.name}(${this.block.name})`;
   }
 }

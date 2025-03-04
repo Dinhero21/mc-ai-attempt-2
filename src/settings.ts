@@ -40,10 +40,8 @@ export const DEBUG_VISUALS = true;
 
 export const SMELT_ITEM_FUEL_ITEM_NAME = 'coal';
 
-// none leads to less calculations but may lead to erroneous actions (such as taking the same action twice) compared with cost-delta
-// cost-delta is much slower due to the cachelessness of SmeltItemTask
-export const STACK_PRUNING_METHOD: 'none' | 'cost-delta' /* | 'full' */ =
-  'none';
+// none may potentially lead to less calculations but is less dynamic, possibly leading to erroneous actions, such as taking the same action twice
+export const STACK_PRUNING_METHOD: 'none' | 'subdivision-hash' = 'none';
 
 export const ALLOW_SPRINTING = true;
 

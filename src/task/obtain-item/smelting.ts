@@ -85,17 +85,16 @@ export default class ObtainItemSmeltingTask extends BaseObtainItemTask {
     return [task];
   }
 
+  @CacheReactiveValue((task) => task.getTask().id)
+  public getSubdivisionHash() {
+    return this.getTask().derive((task) => task?.getHash());
+  }
+
   @AvoidInfiniteRecursion()
   @CacheReactiveValue((task) => task.getTask().id)
   public getBaseCost() {
     return this.getTask()
       .derive((task) => task?.getCost() ?? Infinity)
       .flat();
-  }
-
-  public toString() {
-    const item = bot.registry.items[this.id];
-
-    return `${this.constructor.name}(${item.name}×${this.amount})`;
   }
 }

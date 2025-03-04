@@ -19,12 +19,23 @@ export default abstract class Task {
 
   // for whatever reason, I need to type ah on every derived class
   public abstract run(ah: AbortionHandler): MaybePromise<void | Task[]>;
-  // public abstract stop(): void;
+
+  /**
+   * @returns reactive hash bijective to the task's subdivision
+   */
+  public abstract getSubdivisionHash(): ReactiveValue<any>;
 
   public abstract getCost(): ReactiveValue<number>;
 
-  public toString() {
+  /**
+   * @returns hash for task definition
+   */
+  public getHash(): string {
     return this.constructor.name;
+  }
+
+  public toString() {
+    return this.getHash();
   }
 }
 
@@ -57,11 +68,10 @@ export function CacheReactiveValue<T, U, V /* extends ReactiveValue */>(
   };
 }
 
-export const ReactiveInfinity = new ReactiveValue<typeof Infinity>(Infinity);
 export function AvoidInfiniteRecursion(
-  value?: typeof Infinity | typeof ReactiveInfinity
+  value?: typeof Infinity | ReactiveValue<typeof Infinity>
 ) {
-  value ??= ReactiveInfinity;
+  value ??= ReactiveValue.const(Infinity);
 
   return function AvoidInfiniteRecursion(
     target: any,

@@ -1,5 +1,6 @@
 import { getReactiveItemCountForId } from '../../inventory.js';
 import { ReactiveValue } from '../../react.js';
+import bot from '../../singleton/bot.js';
 import Task, { AvoidInfiniteRecursion, CacheReactiveValue } from '../index.js';
 
 export default abstract class BaseObtainItemTask extends Task {
@@ -76,6 +77,16 @@ export default abstract class BaseObtainItemTask extends Task {
       // to avoid Infinity * 0
       ([baseCost, missing]) => (missing === 0 ? 0 : baseCost * missing)
     );
+  }
+
+  public getHash(): string {
+    return `${this.constructor.name}(${this.id}×${this.amount})`;
+  }
+
+  public toString(): string {
+    const item = bot.registry.items[this.id];
+
+    return `${this.constructor.name}(${item.name}×${this.amount})`;
   }
 }
 

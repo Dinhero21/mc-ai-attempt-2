@@ -2,6 +2,7 @@ import { setTimeout as sleep } from 'timers/promises';
 
 import { AbortionHandler } from '../abort.js';
 import { GoalNear } from '../plugin/pathfinder.js';
+import { ReactiveValue } from '../react.js';
 import {
   SMELT_ITEM_BASE_COST,
   SMELT_ITEM_FUEL_ITEM_NAME,
@@ -9,11 +10,7 @@ import {
 } from '../settings.js';
 import bot from '../singleton/bot.js';
 import { getNearestBlock } from '../world.js';
-import Task, {
-  AvoidInfiniteRecursion,
-  CacheReactiveValue,
-  ReactiveInfinity,
-} from './index.js';
+import Task, { AvoidInfiniteRecursion, CacheReactiveValue } from './index.js';
 import ObtainItemTask from './obtain-item/index.js';
 
 const FUEL_ID = bot.registry.itemsByName[SMELT_ITEM_FUEL_ITEM_NAME].id;
@@ -24,7 +21,7 @@ const FUEL_ID = bot.registry.itemsByName[SMELT_ITEM_FUEL_ITEM_NAME].id;
  * @warning does not attempt to create a furnace
  */
 export default class SmeltItemTask extends Task {
-  public static furnaceBlock = getNearestBlock(
+  public static readonly furnaceBlock = getNearestBlock(
     bot.registry.blocksByName.furnace.id
   );
 
@@ -112,12 +109,16 @@ export default class SmeltItemTask extends Task {
     return output;
   }
 
+  public getSubdivisionHash() {
+    return ReactiveValue.const(undefined);
+  }
+
   @AvoidInfiniteRecursion()
   @CacheReactiveValue((task) => task.id)
   public getCost() {
     return SmeltItemTask.furnaceBlock
       .derive((block) => {
-        if (block === null) return ReactiveInfinity;
+        if (block === null) return ReactiveValue.const(Infinity);
 
         // We can't synchronously fetch furnace data, so we gotta approximate
         const task = new ObtainItemTask(this.id, 1, this.stack);
@@ -126,7 +127,7 @@ export default class SmeltItemTask extends Task {
       .flat();
   }
 
-  public toString() {
+  public getHash() {
     const item = bot.registry.items[this.id];
 
     return `${this.constructor.name}(${item.name})`;

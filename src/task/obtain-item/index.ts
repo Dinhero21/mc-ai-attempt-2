@@ -37,6 +37,11 @@ export default class ObtainItemTask extends BaseObtainItemTask {
     );
   }
 
+  @CacheReactiveValue((task) => task.getTask().id)
+  public getSubdivisionHash() {
+    return this.getTask().derive((task) => task?.getHash());
+  }
+
   public run(): void | Task[] {
     const missing = this.getMissing();
     if (missing.value === 0) return;
@@ -57,11 +62,5 @@ export default class ObtainItemTask extends BaseObtainItemTask {
     const task = this.getTask();
 
     return task.derive((task) => task?.getCost() ?? Infinity).flat();
-  }
-
-  public toString() {
-    const item = bot.registry.items[this.id];
-
-    return `${this.constructor.name}(${item.name}×${this.amount})`;
   }
 }

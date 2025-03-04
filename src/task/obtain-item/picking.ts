@@ -79,6 +79,11 @@ export class ObtainItemPickingTask extends Task {
     clearInterval(interval);
   }
 
+  @CacheReactiveValue((task) => task.getEntity().id)
+  public getSubdivisionHash() {
+    return this.getEntity().derive((entity) => entity?.id);
+  }
+
   @AvoidInfiniteRecursion()
   @CacheReactiveValue((task) => task.id)
   public getCost() {
@@ -91,7 +96,11 @@ export class ObtainItemPickingTask extends Task {
     });
   }
 
-  public toString() {
+  public getHash(): string {
+    return `${this.constructor.name}(${this.id})`;
+  }
+
+  public toString(): string {
     const item = bot.registry.items[this.id];
 
     return `${this.constructor.name}(${item.name})`;

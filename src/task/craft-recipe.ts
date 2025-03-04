@@ -20,6 +20,10 @@ import ObtainItemTask from './obtain-item/index.js';
  * @warning does not attempt to create a crafting table
  */
 export default class CraftRecipeTask extends Task {
+  public static readonly craftingTableBlock = getNearestBlock(
+    bot.registry.blocksByName.crafting_table.id
+  );
+
   protected readonly ingredientCount: Map<number, number>;
 
   constructor(public readonly recipe: Recipe, stack: string[]) {
@@ -58,69 +62,74 @@ export default class CraftRecipeTask extends Task {
     );
   }
 
+  @CacheReactiveValue((task) => task.getTasks().id)
+  protected getTask(): ReactiveValue<ObtainItemTask | undefined> {
+    return this.getTasks().derive((tasks) => {
+      let task: ObtainItemTask | undefined;
+
+      switch (CRAFT_RECIPE_OBTAIN_INGREDIENT_ORDER) {
+        case 'arbitrary:first':
+          task = tasks[0];
+          break;
+        case 'arbitrary:random':
+          task = tasks[Math.floor(Math.random() * tasks.length)];
+          break;
+        case 'cost:highest':
+          {
+            let bestTask: ObtainItemTask | undefined;
+            let bestCost: number = -Infinity;
+
+            for (const task of tasks) {
+              const reactiveCost = task.getCost();
+              const cost = reactiveCost.value;
+
+              if (cost > bestCost) {
+                bestCost = cost;
+                bestTask = task;
+              }
+            }
+
+            task = bestTask;
+          }
+
+          break;
+        case 'cost:lowest':
+          {
+            let bestTask: ObtainItemTask | undefined;
+            let bestCost: number = Infinity;
+
+            for (const task of tasks) {
+              const reactiveCost = task.getCost();
+              const cost = reactiveCost.value;
+
+              if (cost > bestCost) {
+                bestCost = cost;
+                bestTask = task;
+              }
+            }
+
+            task = bestTask;
+          }
+
+          break;
+      }
+
+      return task;
+    });
+  }
+
   public async run(ah: AbortionHandler): Promise<void | Task[]> {
     if (ah.aborted) return;
     ah.on('abort', () => {
       bot.pathfinder.stop();
     });
 
-    const reactiveTasks = this.getTasks();
-    const tasks = reactiveTasks.value;
-
-    let task: Task | undefined;
-
-    switch (CRAFT_RECIPE_OBTAIN_INGREDIENT_ORDER) {
-      case 'arbitrary:first':
-        task = tasks[0];
-        break;
-      case 'arbitrary:random':
-        task = tasks[Math.floor(Math.random() * tasks.length)];
-        break;
-      case 'cost:highest':
-        {
-          let bestTask: Task | undefined;
-          let bestCost: number = -Infinity;
-
-          for (const task of tasks) {
-            const reactiveCost = task.getCost();
-            const cost = reactiveCost.value;
-
-            if (cost > bestCost) {
-              bestCost = cost;
-              bestTask = task;
-            }
-          }
-
-          task = bestTask;
-        }
-
-        break;
-      case 'cost:lowest':
-        {
-          let bestTask: Task | undefined;
-          let bestCost: number = Infinity;
-
-          for (const task of tasks) {
-            const reactiveCost = task.getCost();
-            const cost = reactiveCost.value;
-
-            if (cost > bestCost) {
-              bestCost = cost;
-              bestTask = task;
-            }
-          }
-
-          task = bestTask;
-        }
-
-        break;
-    }
+    const reactiveTask = this.getTask();
+    const task = reactiveTask.value;
 
     if (task !== undefined) return [this, task];
 
-    const reactiveCraftingTable = getNearestBlock(
-      bot.registry.blocksByName.crafting_table.id
-    );
+    const reactiveCraftingTable = CraftRecipeTask.craftingTableBlock;
     const craftingTable = reactiveCraftingTable.value;
 
     if (craftingTable !== null) {
@@ -139,6 +148,17 @@ export default class CraftRecipeTask extends Task {
     await bot.craft(this.recipe, 1, craftingTable ?? undefined);
   }
 
+  @CacheReactiveValue((task) => task.getTask().id)
+  public getSubdivisionHash(): ReactiveValue<any> {
+    return ReactiveValue.compose([
+      this.getTask(),
+      getNearestBlock(bot.registry.blocksByName.crafting_table.id),
+    ]).derive(
+      ([task, craftingTable]) =>
+        `${task?.getHash()} crafting=${craftingTable !== null}`
+    );
+  }
+
   @AvoidInfiniteRecursion()
   @CacheReactiveValue((task) => task.getTasks().id)
   public getCost() {
@@ -153,6 +173,10 @@ export default class CraftRecipeTask extends Task {
         );
       })
       .flat();
+  }
+
+  public getHash() {
+    return `${this.constructor.name}(${JSON.stringify(this.recipe)})`;
   }
 
   public toString() {
