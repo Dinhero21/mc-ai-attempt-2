@@ -63,3 +63,6 @@ export const DISABLE_JUMPING = true;
 
 // false - use minimum value
 export const OBTAIN_ITEM_CRAFTING_USE_EXPECTED_VALUE = true;
+
+// open reactive-value-graph/web-viz/index.html
+export const DEBUG_REACTIVE_VALUE_GRAPH = true;

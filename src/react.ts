@@ -1,4 +1,6 @@
-import { registerCollectionCallback } from './gc.js';
+import { IterableWeakSet, registerCollectionCallback } from './gc.js';
+import { writeMessage } from './module/reactive-value-viz.js';
+import { DEBUG_REACTIVE_VALUE_GRAPH } from './settings.js';
 // import bot from './singleton/bot.js';
 
 // to fix this nasty leak, I've tried:
@@ -25,16 +27,34 @@ import { registerCollectionCallback } from './gc.js';
 
 export let reactiveValuesInMemory = 0;
 
+export const reactiveValueSet = new IterableWeakSet<ReactiveValue<any>>();
+
 export let i = 0;
 export class ReactiveValue<T> {
   public readonly id = i++;
 
   constructor(protected _value: T) {
+    reactiveValueSet.add(this);
+
     // console.log(`${this.id} create`);
+    if (DEBUG_REACTIVE_VALUE_GRAPH) {
+      writeMessage({
+        type: 'create',
+        id: this.id,
+        label: JSON.stringify(_value),
+      });
+    }
 
     reactiveValuesInMemory++;
 
     registerCollectionCallback(this, () => {
+      if (DEBUG_REACTIVE_VALUE_GRAPH) {
+        writeMessage({
+          type: 'destroy',
+          id: this.id,
+        });
+      }
+
       reactiveValuesInMemory--;
     });
   }
@@ -49,6 +69,13 @@ export class ReactiveValue<T> {
     if (this._value === value) return;
 
     // console.log(`${this.id} value.change (${this.subscribers.size})`);
+    if (DEBUG_REACTIVE_VALUE_GRAPH) {
+      writeMessage({
+        type: 'change',
+        id: this.id,
+        label: JSON.stringify(value),
+      });
+    }
 
     this._value = value;
 
@@ -97,6 +124,13 @@ export class ReactiveValue<T> {
       this.unsubscribe(updateDerived);
     });
     derived.refs.add(this);
+    if (DEBUG_REACTIVE_VALUE_GRAPH) {
+      writeMessage({
+        type: 'edge',
+        from: this.id,
+        to: derived.id,
+      });
+    }
 
     return derived;
   }
@@ -130,6 +164,13 @@ export class ReactiveValue<T> {
         values[i].unsubscribe(updateComposed);
       });
       composed.refs.add(values[i]);
+      if (DEBUG_REACTIVE_VALUE_GRAPH) {
+        writeMessage({
+          type: 'edge',
+          from: values[i].id,
+          to: composed.id,
+        });
+      }
     }
 
     return composed;
@@ -164,10 +205,24 @@ export class ReactiveValue<T> {
           value.unsubscribe(setFlat);
         });
         flat.refs.add(value);
+        if (DEBUG_REACTIVE_VALUE_GRAPH) {
+          writeMessage({
+            type: 'edge',
+            from: value.id,
+            to: flat.id,
+          });
+        }
 
         cleanup = () => {
           value.unsubscribe(setFlat);
           flat.refs.delete(value);
+          if (DEBUG_REACTIVE_VALUE_GRAPH) {
+            writeMessage({
+              type: 'remove-edge',
+              from: value.id,
+              to: flat.id,
+            });
+          }
         };
 
         return;
